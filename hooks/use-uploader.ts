@@ -5,11 +5,25 @@ import {
   loadResumes, saveResume, type Task,
 } from '@/lib/upload-client'
 
+/**
+ * 续传时"已传字节"的精确值。分片是定长的，只有最后一片可能短，
+ * 用 size * CHUNK_SIZE 会高估，进度条一开始就跳到一个偏大的位置。
+ */
+function receivedBytes(received: Set<number>, size: number) {
+  let sum = 0
+  for (const i of received) sum += Math.min(CHUNK_SIZE, size - i * CHUNK_SIZE)
+  return sum
+}
+
 export function useUploader(onDone?: () => void) {
   const [tasks, setTasks] = useState<Task[]>([])
   const cancelRef = useRef<Set<string>>(new Set())
   const pausedRef = useRef<Set<string>>(new Set())
   const optsRef = useRef<Map<string, { sharePassword?: string } | undefined>>(new Map())
+  // 每个任务一个 signal。任何一个分片失败或用户取消，都必须把同批其余
+  // worker 正在飞的分片请求一起掐掉 —— 否则它们会继续往同一个 uploadId
+  // 写盘，重试时就是两个会话并发写同一份分片。
+  const abortRef = useRef<Map<string, AbortController>>(new Map())
   // 还有几个任务在跑。onDone 只在最后一个结束时触发 —— 否则调用方那句
   // location.reload() 会把同批其余文件正在飞的分片请求全部掐断。
   const inFlight = useRef(0)
@@ -26,6 +40,8 @@ export function useUploader(onDone?: () => void) {
   }, [])
 
   const settle = useCallback((id: string) => {
+    abortRef.current.get(id)?.abort()
+    abortRef.current.delete(id)
     if (!liveRef.current.delete(id)) return
     cancelRef.current.delete(id)
     pausedRef.current.delete(id)
@@ -49,6 +65,8 @@ export function useUploader(onDone?: () => void) {
   }, [])
 
   async function run(id: string, file: File, opts?: { sharePassword?: string }) {
+    const ac = new AbortController()
+    abortRef.current.set(id, ac)
     try {
       // ---- 1. 指纹（秒传判定用） ----
       patch(id, { state: 'hashing' })
@@ -62,6 +80,7 @@ export function useUploader(onDone?: () => void) {
       const initRes = await fetch('/api/upload/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: ac.signal,
         body: JSON.stringify({
           name: file.name,
           size: file.size,
@@ -94,7 +113,7 @@ export function useUploader(onDone?: () => void) {
       const remaining: number[] = []
       for (let i = 0; i < totalChunks; i++) if (!received.has(i)) remaining.push(i)
 
-      const alreadyDone = received.size * CHUNK_SIZE
+      const alreadyDone = receivedBytes(received, file.size)
       patch(id, { uploadId, sentBytes: Math.min(alreadyDone, file.size), progress: (received.size / totalChunks) * 100 })
 
       // ---- 3. 并发传分片 ----
@@ -103,42 +122,58 @@ export function useUploader(onDone?: () => void) {
       const t0 = Date.now()
       let cursor = 0
 
+      // 首个失败的原因。不能靠 allSettled 数组顺序取第一个 rejected ——
+      // 先失败的那个未必排在前面，取到的可能是被连累的 AbortError
+      let firstError: unknown = null
+
       async function worker() {
-        while (cursor < remaining.length) {
-          if (cancelRef.current.has(id)) throw new Error('CANCELLED')
-          while (pausedRef.current.has(id)) {
-            await new Promise((r) => setTimeout(r, 300))
-            if (cancelRef.current.has(id)) throw new Error('CANCELLED')
+        try {
+          while (cursor < remaining.length) {
+            if (ac.signal.aborted || cancelRef.current.has(id)) throw new Error('CANCELLED')
+            while (pausedRef.current.has(id)) {
+              await new Promise((r) => setTimeout(r, 300))
+              if (ac.signal.aborted || cancelRef.current.has(id)) throw new Error('CANCELLED')
+            }
+
+            const idx = remaining[cursor++]
+            const blob = file.slice(idx * CHUNK_SIZE, Math.min(file.size, (idx + 1) * CHUNK_SIZE))
+
+            const fd = new FormData()
+            fd.append('uploadId', uploadId)
+            fd.append('index', String(idx))
+            fd.append('chunk', blob, `chunk-${idx}`)
+
+            const res = await fetch('/api/upload/chunk', { method: 'POST', body: fd, signal: ac.signal })
+            if (!res.ok) throw new Error(`分片 ${idx} 失败`)
+
+            done++
+            sent += blob.size
+            const elapsed = (Date.now() - t0) / 1000
+            patch(id, {
+              progress: (done / totalChunks) * 100,
+              sentBytes: Math.min(sent, file.size),
+              speed: elapsed > 0 ? (sent - alreadyDone) / elapsed : 0,
+            })
           }
-
-          const idx = remaining[cursor++]
-          const blob = file.slice(idx * CHUNK_SIZE, Math.min(file.size, (idx + 1) * CHUNK_SIZE))
-
-          const fd = new FormData()
-          fd.append('uploadId', uploadId)
-          fd.append('index', String(idx))
-          fd.append('chunk', blob, `chunk-${idx}`)
-
-          const res = await fetch('/api/upload/chunk', { method: 'POST', body: fd })
-          if (!res.ok) throw new Error(`分片 ${idx} 失败`)
-
-          done++
-          sent += blob.size
-          const elapsed = (Date.now() - t0) / 1000
-          patch(id, {
-            progress: (done / totalChunks) * 100,
-            sentBytes: Math.min(sent, file.size),
-            speed: elapsed > 0 ? (sent - alreadyDone) / elapsed : 0,
-          })
+        } catch (err) {
+          // 一失败就立刻掐掉同批其余 worker 正在飞的分片请求，
+          // 否则它们会把当前这片传完才停，服务器上留下一堆白传的数据
+          if (!firstError) firstError = err
+          ac.abort()
+          throw err
         }
       }
 
-      await Promise.all(Array.from({ length: Math.min(CONCURRENCY, remaining.length || 1) }, worker))
+      await Promise.allSettled(
+        Array.from({ length: Math.min(CONCURRENCY, remaining.length || 1) }, worker),
+      )
+      if (firstError) throw firstError
 
       // ---- 4. 合并 ----
       const doneRes = await fetch('/api/upload/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: ac.signal,
         body: JSON.stringify({
           uploadId,
           name: file.name,
@@ -158,7 +193,10 @@ export function useUploader(onDone?: () => void) {
         fileId: out.fileId, shareCode: out.shareCode, deleteKey: out.deleteKey, expiresAt: out.expiresAt,
       })
     } catch (e: any) {
-      if (e?.message === 'CANCELLED') {
+      // 判定"是不是取消"只能看 cancel 标记，不能看 ac.signal.aborted ——
+      // worker 失败时自己也会 abort，真正的错误会被误当成取消静默丢掉
+      const cancelled = cancelRef.current.has(id) || e?.message === 'CANCELLED'
+      if (cancelled) {
         setTasks((prev) => prev.filter((t) => t.id !== id))
         return
       }
