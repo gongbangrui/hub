@@ -10,9 +10,28 @@ export function useUploader(onDone?: () => void) {
   const cancelRef = useRef<Set<string>>(new Set())
   const pausedRef = useRef<Set<string>>(new Set())
   const optsRef = useRef<Map<string, { sharePassword?: string } | undefined>>(new Map())
+  // 还有几个任务在跑。onDone 只在最后一个结束时触发 —— 否则调用方那句
+  // location.reload() 会把同批其余文件正在飞的分片请求全部掐断。
+  const inFlight = useRef(0)
+  // onDone 存进 ref：start 的依赖是空数组，闭包里的 onDone 会停留在首帧
+  const doneRef = useRef(onDone)
+  doneRef.current = onDone
+
+  // 还在跑的任务 id。settle 靠它做成幂等：cancel 与 run 的 finally 都会调，
+  // 只有第一次真正生效，否则 inFlight 会被减两次、过早触发 onDone。
+  const liveRef = useRef<Set<string>>(new Set())
 
   const patch = useCallback((id: string, next: Partial<Task>) => {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...next } : t)))
+  }, [])
+
+  const settle = useCallback((id: string) => {
+    if (!liveRef.current.delete(id)) return
+    cancelRef.current.delete(id)
+    pausedRef.current.delete(id)
+    optsRef.current.delete(id)
+    inFlight.current = Math.max(0, inFlight.current - 1)
+    if (inFlight.current === 0) doneRef.current?.()
   }, [])
 
   const start = useCallback(async (files: File[], opts?: { sharePassword?: string }) => {
@@ -23,6 +42,8 @@ export function useUploader(onDone?: () => void) {
         { id, file, progress: 0, state: 'queued', sentBytes: 0, speed: 0 },
       ])
       optsRef.current.set(id, opts)
+      liveRef.current.add(id)
+      inFlight.current += 1
       void run(id, file, opts)
     }
   }, [])
@@ -61,11 +82,12 @@ export function useUploader(onDone?: () => void) {
           state: 'done', progress: 100, sentBytes: file.size,
           fileId: init.fileId, shareCode: init.shareCode, instant: true,
         })
-        onDone?.()
         return
       }
 
-      const { uploadId, totalChunks } = init
+      const { uploadId } = init
+      // 兜底：服务端没回 totalChunks 时按文件大小自己算，避免进度变成 NaN
+      const totalChunks: number = Number.isInteger(init.totalChunks) ? init.totalChunks : chunkCount(file.size)
       saveResume(fileKey(file), { uploadId, name: file.name, size: file.size, mtime: file.lastModified })
 
       const received = new Set<number>(init.received ?? [])
@@ -135,7 +157,6 @@ export function useUploader(onDone?: () => void) {
         state: 'done', progress: 100, sentBytes: file.size,
         fileId: out.fileId, shareCode: out.shareCode, deleteKey: out.deleteKey, expiresAt: out.expiresAt,
       })
-      onDone?.()
     } catch (e: any) {
       if (e?.message === 'CANCELLED') {
         setTasks((prev) => prev.filter((t) => t.id !== id))
@@ -143,6 +164,9 @@ export function useUploader(onDone?: () => void) {
       }
       // 断点记录故意保留 —— 重新拖同一个文件就能续上
       patch(id, { state: 'error', error: e?.message ?? '上传失败' })
+    } finally {
+      // 所有出口都在这里收敛：成功、秒传、取消、报错
+      settle(id)
     }
   }
 
@@ -157,13 +181,20 @@ export function useUploader(onDone?: () => void) {
     if (!t) return
     patch(id, { state: 'uploading', error: undefined })
     // 暂停中的 worker 仍在轮询，解除暂停即可继续；只有出错的任务才重新跑（走断点续传）
-    if (t.state === 'error') void run(id, t.file, optsRef.current.get(id))
+    if (t.state === 'error') {
+      // 重新计入 live/inFlight，否则 run 的 finally 会早退，onDone 永远不触发
+      liveRef.current.add(id)
+      inFlight.current += 1
+      void run(id, t.file, optsRef.current.get(id))
+    }
   }, [tasks, patch])
 
   const cancel = useCallback((id: string) => {
     cancelRef.current.add(id)
     setTasks((prev) => prev.filter((t) => t.id !== id))
-  }, [])
+    // 立刻收尾：worker 要到下一片才看到取消标记，不能让 inFlight 挂着等
+    settle(id)
+  }, [settle])
 
   const clearFinished = useCallback(() => {
     setTasks((prev) => prev.filter((t) => t.state !== 'done'))

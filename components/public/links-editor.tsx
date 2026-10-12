@@ -40,28 +40,35 @@ export function LinksEditor({ open, link, categories, onClose }: Props) {
   }, [open, link])
 
   async function save() {
+    if (busy) return
     const url = normalizeUrl(form.url)
     if (!form.title.trim()) return setErr('title')
     if (!url) return setErr('url')
 
     setBusy(true); setErr('')
-    const payload = {
-      title: form.title.trim(),
-      url,
-      description: form.description.trim() || null,
-      categoryId: form.categoryId ? Number(form.categoryId) : null,
-      tags: form.tags.split(/[,，\s]+/).map((s) => s.trim()).filter(Boolean),
-      pinned: form.pinned,
+    try {
+      const payload = {
+        title: form.title.trim(),
+        url,
+        description: form.description.trim() || null,
+        categoryId: form.categoryId ? Number(form.categoryId) : null,
+        tags: form.tags.split(/[,，\s]+/).map((s) => s.trim()).filter(Boolean),
+        pinned: form.pinned,
+      }
+      const res = await fetch(link ? `/api/links/${link.id}` : '/api/links', {
+        method: link ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) return setErr('save')
+      onClose()
+      location.reload()
+    } catch {
+      setErr('save')
+    } finally {
+      // 网络异常时也必须解锁，否则按钮永远转圈
+      setBusy(false)
     }
-    const res = await fetch(link ? `/api/links/${link.id}` : '/api/links', {
-      method: link ? 'PATCH' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-    setBusy(false)
-    if (!res.ok) return setErr('save')
-    onClose()
-    location.reload()
   }
 
   const bad = (k: Err) => err === k && 'border-rose-400/60 ring-2 ring-rose-400/20'

@@ -42,7 +42,14 @@ export async function POST(req: NextRequest) {
     if (!Number.isInteger(total) || total < 1 || total > 20000) {
       return NextResponse.json({ error: 'BAD_CHUNKS' }, { status: 400 })
     }
-    return NextResponse.json({ uploadId: resumeId, received: uploadedChunkIndexes(resumeId, total) })
+    // totalChunks 必须回传：客户端要靠它算 remaining 与进度，
+    // 漏了会让续传算出 NaN 进度、并以 BAD_CHUNKS 结束
+    return NextResponse.json({
+      uploadId: resumeId,
+      totalChunks: total,
+      chunkSize: CHUNK_SIZE,
+      received: uploadedChunkIndexes(resumeId, total),
+    })
   }
 
   // ---- 新上传 ----

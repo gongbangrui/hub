@@ -45,24 +45,30 @@ export function CompetitionEditor({ open, item, categories, onClose }: Props) {
   }, [open, item])
 
   async function save() {
+    if (busy) return
     if (!form.name.trim()) return setErr('名称 ✕')
     setBusy(true); setErr('')
-    const res = await fetch(item ? `/api/competitions/${item.id}` : '/api/competitions', {
-      method: item ? 'PATCH' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...form,
-        categoryId: form.categoryId ? Number(form.categoryId) : null,
-        attachments: atts,
-      }),
-    })
-    setBusy(false)
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}))
-      return setErr(j.error ?? '保存失败')
+    try {
+      const res = await fetch(item ? `/api/competitions/${item.id}` : '/api/competitions', {
+        method: item ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          categoryId: form.categoryId ? Number(form.categoryId) : null,
+          attachments: atts,
+        }),
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        return setErr(j.error ?? '保存失败')
+      }
+      onClose()
+      location.reload()
+    } catch {
+      setErr('保存失败')
+    } finally {
+      setBusy(false)
     }
-    onClose()
-    location.reload()
   }
 
   return (

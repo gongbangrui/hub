@@ -153,7 +153,10 @@ export function LinksBrowser({ links, categories, authed }: Props) {
       const next = spatialNext(focusIdx, ordered.length, e.key)
       if (next < 0) return
       setFocusIdx(next)
-      document.querySelector<HTMLElement>(`[data-link-idx="${next}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      const el = document.querySelector<HTMLElement>(`[data-link-idx="${next}"]`)
+      // 必须真的移焦点，只加 ring 的话读屏不会播报当前卡片
+      el?.focus({ preventScroll: true })
+      el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -437,7 +440,8 @@ function Card({ link, idx, focused, featured, authed, onEdit, onDelete }: {
       transition={{ layout: { duration: 0.45, ease: EASE } }}
       whileTap={{ scale: 0.97 }}
       data-link-idx={idx}
-      className="group/card relative"
+      tabIndex={-1}
+      className="group/card relative outline-none"
     >
       <Tilt
         intensity={featured ? 6 : 7}

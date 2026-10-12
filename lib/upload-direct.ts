@@ -25,6 +25,8 @@ export async function uploadFileDirect(
   const init = await initRes.json()
 
   if (init.instant) {
+    // 秒传直接返回，也要把之前的断点记录清掉，否则 localStorage 里永久留一条废记录
+    dropResume(fileKey(file))
     onProgress?.(100)
     return { fileId: init.fileId, shareCode: init.shareCode ?? null }
   }

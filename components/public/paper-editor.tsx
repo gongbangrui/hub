@@ -45,24 +45,30 @@ export function PaperEditor({ open, item, onClose }: Props) {
   }, [open, item])
 
   async function save() {
+    if (busy) return
     if (!form.title.trim()) return setErr('✕ 标题')
     setBusy(true); setErr('')
-    const res = await fetch(item ? `/api/papers/${item.id}` : '/api/papers', {
-      method: item ? 'PATCH' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...form,
-        authors: form.authors.split(/[、,，;；]+/).map((s) => s.trim()).filter(Boolean),
-        attachments: atts,
-      }),
-    })
-    setBusy(false)
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}))
-      return setErr(j.error ?? '✕')
+    try {
+      const res = await fetch(item ? `/api/papers/${item.id}` : '/api/papers', {
+        method: item ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          authors: form.authors.split(/[、,，;；]+/).map((s) => s.trim()).filter(Boolean),
+          attachments: atts,
+        }),
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        return setErr(j.error ?? '✕')
+      }
+      onClose()
+      location.reload()
+    } catch {
+      setErr('✕')
+    } finally {
+      setBusy(false)
     }
-    onClose()
-    location.reload()
   }
 
   return (

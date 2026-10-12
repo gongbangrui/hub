@@ -59,7 +59,9 @@ export function FileStation({ files, authed, tempCount }: { files: FileRow[]; au
 
   useEffect(() => setMounted(true), [])
 
-  // 本机上传的删除凭证：记下来，访客才能删自己的文件
+  // 本机上传的删除凭证：记下来，访客才能删自己的文件。
+  // 没有新增完成项就直接 return —— 这个 effect 依赖 tasks，而 tasks 每个分片都会变，
+  // 不加这道判断的话 4GB 文件会在上传期间触发上千次全量重渲染。
   useEffect(() => {
     const keys = readKeys()
     let changed = false
@@ -69,7 +71,8 @@ export function FileStation({ files, authed, tempCount }: { files: FileRow[]; au
         changed = true
       }
     }
-    if (changed) { try { localStorage.setItem(MY_KEYS, JSON.stringify(keys)) } catch {} }
+    if (!changed) return
+    try { localStorage.setItem(MY_KEYS, JSON.stringify(keys)) } catch {}
     setMyKeys(keys)
   }, [tasks])
 
@@ -406,7 +409,7 @@ function UploadRow({ task, onPause, onResume, onCancel }: {
           {uploading && (
             <button onClick={() => onPause(task.id)} className="btn btn-ghost h-10 w-10 p-0" aria-label="暂停" title="暂停"><Pause size={13} /></button>
           )}
-          {paused && (
+          {(paused || err) && (
             <button onClick={() => onResume(task.id)} className="btn btn-ghost h-10 w-10 p-0" aria-label="继续" title="继续"><Play size={13} /></button>
           )}
           {!done && (

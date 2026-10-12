@@ -6,7 +6,22 @@ import { cn, formatBytes, fileKind } from '@/lib/utils'
 import { fileUrl } from '@/lib/file-url'
 import { EASE } from '@/components/ui/fx'
 
-export type AttItem = { fileId: number; caption: string; name: string; mime: string; size: number }
+export type AttItem = {
+  fileId: number
+  caption: string
+  name: string
+  mime: string
+  size: number
+  /** 本地唯一键。秒传会让两次选择同一个文件得到同一个 fileId，单用 fileId 会撞 key */
+  uid?: string
+}
+
+/** crypto.randomUUID 只在安全上下文可用，兜个底 */
+function uid() {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2)
+}
 
 /**
  * 表单内附件上传：直接把文件放进中转站（owner 自动识别为 admin），
@@ -21,39 +36,52 @@ export function AttachmentDrop({ items, onChange, accept }: {
   const [dragging, setDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  const dragItem = useRef<number | null>(null)
+  const dragKey = useRef<string | null>(null)
+
+  // items 是父组件的受控值，闭包里的它可能是旧的。
+  // 用 ref 跟住最新值，每传完一个就基于最新列表追加，
+  // 否则上传期间父组件上的删除/改名会被这次整体覆盖抹掉。
+  const itemsRef = useRef(items)
+  itemsRef.current = items
+
+  const keyOf = (it: AttItem) => it.uid ?? String(it.fileId)
 
   async function add(files: File[]) {
     if (!files.length) return
     setUploading(true)
-
-    const next = [...items]
-    await Promise.all(
-      files.map(async (file) => {
-        // 表单内附件走同一条分片上传链路，只是不进队列 UI
+    try {
+      // 逐个串行：一是保证附件顺序等于用户选择顺序，
+      // 二是每个文件一完成就能立即反映到列表里，不必等全部结束
+      for (const file of files) {
         try {
           const { uploadFileDirect } = await import('@/lib/upload-direct')
           const out = await uploadFileDirect(file)
-          if (out?.fileId) {
-            next.push({ fileId: out.fileId, caption: '', name: file.name, mime: file.type || '', size: file.size })
-          }
+          if (!out?.fileId) continue
+          itemsRef.current = [
+            ...itemsRef.current,
+            { fileId: out.fileId, caption: '', name: file.name, mime: file.type || '', size: file.size, uid: uid() },
+          ]
+          onChange(itemsRef.current)
         } catch {
-          // 失败的文件直接跳过，下面统一在 UI 里反映进度
+          // 单个文件失败不影响其余，静默跳过
         }
-      }),
-    )
-
-    onChange(next)
-    setUploading(false)
+      }
+    } finally {
+      setUploading(false)
+    }
   }
 
-  function reorder(to: number) {
-    const from = dragItem.current
-    if (from === null || from === to) return
-    const next = [...items]
+  function reorder(toKey: string) {
+    const fromKey = dragKey.current
+    dragKey.current = null
+    if (!fromKey || fromKey === toKey) return
+    const next = [...itemsRef.current]
+    // 拖拽可能跨越了列表变化，所以按 key 重新定位而不是复用起始下标
+    const from = next.findIndex((it) => keyOf(it) === fromKey)
+    const to = next.findIndex((it) => keyOf(it) === toKey)
+    if (from < 0 || to < 0) return
     const [moved] = next.splice(from, 1)
     next.splice(to, 0, moved)
-    dragItem.current = null
     onChange(next)
   }
 
@@ -113,16 +141,16 @@ export function AttachmentDrop({ items, onChange, accept }: {
               const kind = fileKind(it.mime, it.name)
               return (
                 <motion.li
-                  key={it.fileId}
+                  key={keyOf(it)}
                   layout
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -12 }}
                   transition={{ duration: 0.3, ease: EASE }}
                   draggable
-                  onDragStart={() => { dragItem.current = i }}
+                  onDragStart={() => { dragKey.current = keyOf(it) }}
                   onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => reorder(i)}
+                  onDrop={() => reorder(keyOf(it))}
                   className="liquid liquid-hover flex items-center gap-2.5 rounded-xl py-1.5 pl-2 pr-1"
                 >
                   <GripVertical size={13} className="shrink-0 cursor-grab text-indigo-100/25" aria-hidden />

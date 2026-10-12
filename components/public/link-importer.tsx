@@ -19,16 +19,22 @@ export function LinkImporter() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   async function run(html: string) {
+    if (busy) return
     if (!html.trim()) return setErr('∅')
     setBusy(true); setErr(''); setResult(null)
-    const res = await fetch('/api/links/import', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ html, createFolders }),
-    })
-    setBusy(false)
-    if (!res.ok) return setErr('失败')
-    setResult(await res.json())
+    try {
+      const res = await fetch('/api/links/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ html, createFolders }),
+      })
+      if (!res.ok) return setErr('失败')
+      setResult(await res.json())
+    } catch {
+      setErr('失败')
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function fromFile(f?: File | null) {
