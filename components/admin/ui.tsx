@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m as motion, AnimatePresence } from 'framer-motion'
 import { Search, X, Check, Minus, CircleAlert, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Counter } from '@/components/ui/fx'
@@ -24,16 +24,16 @@ export function AdminTitle({ title, count, actions, icon }: {
         transition={{ duration: 0.5, ease: EASE }}
       >
         {icon && (
-          <span className="liquid flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-indigo-100">{icon}</span>
+          <span className="liquid flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-slate-700">{icon}</span>
         )}
-        <span className="text-grad text-[clamp(1.6rem,3.4vw,2.3rem)] font-bold leading-[1.1] tracking-[-0.035em]">{title}</span>
+        <span className="title-xl text-[clamp(1.6rem,3.4vw,2.3rem)]">{title}</span>
         {count !== undefined && (
           <motion.span
             key={count}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: 'spring', stiffness: 420, damping: 26 }}
-            className="num rounded-full border border-indigo-300/25 bg-[image:var(--grad-soft)] px-2.5 py-0.5 text-[12px] font-medium text-indigo-50/85 shadow-[inset_0_1px_0_rgb(255_255_255/0.12)]"
+            className="num rounded-full border border-indigo-300/25 bg-[image:var(--grad-soft)] px-2.5 py-0.5 text-[12px] font-medium text-slate-700 shadow-[inset_0_1px_0_rgb(255_255_255/0.12)]"
           >
             {count}
           </motion.span>
@@ -48,15 +48,15 @@ export function AdminTitle({ title, count, actions, icon }: {
 
 /** cyan / fuchsia 为旧名，映射到新色板 */
 const TONE = {
-  sky: { icon: 'text-sky-200 bg-sky-400/12 border-sky-300/25', glow: 'from-sky-400/30' },
-  cyan: { icon: 'text-sky-200 bg-sky-400/12 border-sky-300/25', glow: 'from-sky-400/30' },
-  indigo: { icon: 'text-indigo-200 bg-indigo-400/12 border-indigo-300/25', glow: 'from-indigo-400/30' },
-  violet: { icon: 'text-violet-200 bg-violet-400/12 border-violet-300/25', glow: 'from-violet-400/30' },
-  purple: { icon: 'text-purple-200 bg-purple-400/12 border-purple-300/25', glow: 'from-purple-400/30' },
-  fuchsia: { icon: 'text-purple-200 bg-purple-400/12 border-purple-300/25', glow: 'from-purple-400/30' },
-  amber: { icon: 'text-amber-200 bg-amber-400/12 border-amber-300/25', glow: 'from-amber-400/25' },
-  emerald: { icon: 'text-emerald-200 bg-emerald-400/12 border-emerald-300/25', glow: 'from-emerald-400/25' },
-  rose: { icon: 'text-rose-200 bg-rose-400/12 border-rose-300/25', glow: 'from-rose-400/25' },
+  sky: { icon: 'text-sky-600 bg-sky-400/12 border-sky-300/25', glow: 'from-sky-400/30' },
+  cyan: { icon: 'text-sky-600 bg-sky-400/12 border-sky-300/25', glow: 'from-sky-400/30' },
+  indigo: { icon: 'text-indigo-500 bg-indigo-400/12 border-indigo-300/25', glow: 'from-indigo-400/30' },
+  violet: { icon: 'text-violet-600 bg-violet-400/12 border-violet-300/25', glow: 'from-violet-400/30' },
+  purple: { icon: 'text-violet-600 bg-purple-400/12 border-purple-300/25', glow: 'from-purple-400/30' },
+  fuchsia: { icon: 'text-violet-600 bg-purple-400/12 border-purple-300/25', glow: 'from-purple-400/30' },
+  amber: { icon: 'text-amber-700 bg-amber-400/12 border-amber-300/25', glow: 'from-amber-400/25' },
+  emerald: { icon: 'text-emerald-600 bg-emerald-400/12 border-emerald-300/25', glow: 'from-emerald-400/25' },
+  rose: { icon: 'text-rose-600 bg-rose-400/12 border-rose-300/25', glow: 'from-rose-400/25' },
 } as const
 
 export type Tone = keyof typeof TONE
@@ -74,13 +74,13 @@ export function StatCard({ label, value, hint, icon, tone = 'sky', href }: {
     >
       <div className={cn('pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-gradient-to-br to-transparent blur-2xl', t.glow)} />
       <div className="relative flex items-center justify-between gap-3">
-        <p className="text-[12px] font-medium text-indigo-100/55">{label}</p>
+        <p className="text-[12px] font-medium text-slate-600">{label}</p>
         {icon && <span className={cn('flex h-8 w-8 items-center justify-center rounded-xl border', t.icon)}>{icon}</span>}
       </div>
-      <div className="relative mt-3 text-[30px] font-semibold leading-none tracking-tight text-white">
+      <div className="relative mt-3 text-[30px] font-semibold leading-none tracking-tight text-slate-900">
         {typeof value === 'number' ? <Counter value={value} /> : <span className="num">{value}</span>}
       </div>
-      {hint && <div className="relative mt-2.5 flex flex-wrap items-center gap-x-2 text-[11.5px] text-indigo-100/40">{hint}</div>}
+      {hint && <div className="relative mt-2.5 flex flex-wrap items-center gap-x-2 text-[11.5px] text-slate-500">{hint}</div>}
     </div>
   )
   return href ? <Link href={href} className="block h-full rounded-3xl">{body}</Link> : body
@@ -101,7 +101,7 @@ export function SearchInput({ value, onChange, placeholder = '搜索', className
 }) {
   return (
     <div className={cn('relative min-w-[160px] flex-1', className)}>
-      <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-indigo-200/40" />
+      <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400" />
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -113,7 +113,7 @@ export function SearchInput({ value, onChange, placeholder = '搜索', className
       {value && (
         <button
           onClick={() => onChange('')}
-          className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/10 hover:text-white"
+          className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-slate-900/40 transition-colors hover:bg-slate-900/10 hover:text-slate-900"
           aria-label="清空"
           title="清空"
         >
@@ -139,8 +139,8 @@ export function Checkbox({ checked, indeterminate, onChange, className }: {
       className={cn(
         'relative flex h-[18px] before:absolute before:-inset-[11px] w-[18px] shrink-0 items-center justify-center rounded-[6px] border transition-all duration-200',
         on
-          ? 'border-transparent bg-gradient-to-br from-sky-300 via-indigo-400 to-purple-400 text-[#060818] shadow-[0_0_14px_-2px_rgb(129_140_248/0.7)]'
-          : 'border-white/20 bg-white/[0.04] hover:border-indigo-300/50',
+          ? 'border-transparent bg-gradient-to-br from-sky-300 via-indigo-400 to-purple-400 text-white shadow-[0_0_14px_-2px_rgb(129_140_248/0.7)]'
+          : 'border-slate-900/14 bg-slate-900/4 hover:border-indigo-300/50',
         className,
       )}
     >
@@ -218,7 +218,7 @@ export function BulkBar({ count, onClear, children }: {
               initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 500, damping: 26 }}
-              className="num flex h-8 min-w-8 shrink-0 items-center justify-center gap-1 rounded-xl bg-[image:var(--grad)] px-2 text-[13px] font-semibold text-[#060818]"
+              className="num flex h-8 min-w-8 shrink-0 items-center justify-center gap-1 rounded-xl bg-[image:var(--grad)] px-2 text-[13px] font-semibold text-white"
               title="已选"
             >
               <Check size={13} strokeWidth={3} />{count}
@@ -248,9 +248,9 @@ export function AdminTable({ head, children, empty, className }: {
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-[13.5px]">
             <thead>
-              <tr className="border-b border-white/[0.07] bg-gradient-to-r from-sky-300/[0.04] via-indigo-300/[0.03] to-purple-300/[0.04]">{head}</tr>
+              <tr className="border-b border-slate-900/7 bg-gradient-to-r from-sky-300/[0.04] via-indigo-300/[0.03] to-purple-300/[0.04]">{head}</tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.05]">{children}</tbody>
+            <tbody className="divide-y divide-slate-900/5">{children}</tbody>
           </table>
         </div>
       )}
@@ -308,9 +308,9 @@ export function toast(msg: string, tone: ToastTone = 'ok') {
 const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l) } }
 
 const TOAST_STYLE = {
-  ok: { icon: <Check size={13} strokeWidth={3} />, cls: 'bg-emerald-400/15 text-emerald-200 border-emerald-300/30', bar: 'from-emerald-300 to-sky-300' },
-  err: { icon: <CircleAlert size={14} />, cls: 'bg-rose-400/15 text-rose-200 border-rose-300/30', bar: 'from-rose-400 to-purple-400' },
-  info: { icon: <Info size={14} />, cls: 'bg-sky-400/15 text-sky-200 border-sky-300/30', bar: 'from-sky-300 via-indigo-400 to-purple-400' },
+  ok: { icon: <Check size={13} strokeWidth={3} />, cls: 'bg-emerald-400/15 text-emerald-600 border-emerald-300/30', bar: 'from-emerald-300 to-sky-300' },
+  err: { icon: <CircleAlert size={14} />, cls: 'bg-rose-400/15 text-rose-600 border-rose-300/30', bar: 'from-rose-400 to-purple-400' },
+  info: { icon: <Info size={14} />, cls: 'bg-sky-400/15 text-sky-600 border-sky-300/30', bar: 'from-sky-300 via-indigo-400 to-purple-400' },
 } as const
 
 export function Toaster() {
@@ -339,7 +339,7 @@ export function Toaster() {
               )}
             >
               <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border', st.cls)}>{st.icon}</span>
-              <span className="min-w-0 break-words text-white/90">{t.msg}</span>
+              <span className="min-w-0 break-words text-slate-900/90">{t.msg}</span>
               <motion.span
                 className={cn('absolute bottom-0 left-0 h-[2px] w-full origin-left bg-gradient-to-r opacity-70', st.bar)}
                 initial={{ scaleX: 1 }}
@@ -380,20 +380,24 @@ export async function api<T = unknown>(path: string, init: ApiInit = {}): Promis
 /** 执行写操作：成功 toast + 刷新服务端数据，失败 toast 错误 */
 export function useMutate() {
   const router = useRouter()
-  const [pending, setPending] = useState(false)
+  // 用计数器而不是布尔：批量操作会并发发起多个请求，
+  // 最快那个先结束时若直接把 pending 置 false，其余请求还在飞，按钮就又能点了
+  const [inflight, setInflight] = useState(0)
   const run = useCallback(async <R,>(fn: () => Promise<R>, okMsg?: string): Promise<R | undefined> => {
-    setPending(true)
+    setInflight((n) => n + 1)
     try {
       const r = await fn()
       if (okMsg) toast(okMsg)
-      router.refresh()
       return r
     } catch (e) {
       toast(e instanceof Error ? e.message : '操作失败', 'err')
       return undefined
     } finally {
-      setPending(false)
+      setInflight((n) => n - 1)
+      // 无论成败都刷新：批量请求里只要有一个失败，其余成功的改动也必须反映到界面上
+      router.refresh()
     }
   }, [router])
+  const pending = inflight > 0
   return useMemo(() => ({ run, pending }), [run, pending])
 }

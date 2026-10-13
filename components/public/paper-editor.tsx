@@ -1,7 +1,8 @@
 'use client'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Loader2, Check, Trash2, Plus, Pencil, Paperclip, ChevronDown } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { m as motion } from 'framer-motion'
 import { Sheet, STATUSES } from '@/components/ui/primitives'
 import { Field } from '@/components/public/links-editor'
 import { AttachmentDrop, type AttItem } from '@/components/public/attachment-drop'
@@ -15,6 +16,7 @@ const EMPTY = {
 }
 
 export function PaperEditor({ open, item, onClose }: Props) {
+  const router = useRouter()
   const [form, setForm] = useState(EMPTY)
   const [atts, setAtts] = useState<AttItem[]>([])
   const [busy, setBusy] = useState(false)
@@ -63,7 +65,7 @@ export function PaperEditor({ open, item, onClose }: Props) {
         return setErr(j.error ?? '✕')
       }
       onClose()
-      location.reload()
+      router.refresh()
     } catch {
       setErr('✕')
     } finally {
@@ -78,7 +80,7 @@ export function PaperEditor({ open, item, onClose }: Props) {
       wide
       title={
         <h2 className="flex items-center gap-2.5 text-lg font-medium">
-          <span className="liquid flex h-9 w-9 items-center justify-center rounded-xl text-indigo-200">
+          <span className="liquid flex h-9 w-9 items-center justify-center rounded-xl text-indigo-500">
             {item ? <Pencil size={15} /> : <Plus size={16} />}
           </span>
           论文
@@ -131,7 +133,7 @@ export function PaperEditor({ open, item, onClose }: Props) {
         </section>
 
         <details open={!item} className="group">
-          <summary className="label flex min-h-[40px] cursor-pointer list-none items-center gap-1.5 hover:text-white/70" aria-label="更多">
+          <summary className="label flex min-h-[40px] cursor-pointer list-none items-center gap-1.5 hover:text-slate-900/70" aria-label="更多">
             <ChevronDown size={13} className="transition-transform duration-300 group-open:rotate-180" /> ⋯
           </summary>
           <div className="mt-4 space-y-5">
@@ -154,10 +156,10 @@ export function PaperEditor({ open, item, onClose }: Props) {
         </details>
 
         {err && (
-          <motion.p initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} className="text-[12.5px] text-rose-300">{err}</motion.p>
+          <motion.p initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} className="text-[12.5px] text-rose-600">{err}</motion.p>
         )}
 
-        <div className="flex items-center gap-2 border-t border-white/[0.07] pt-5">
+        <div className="flex items-center gap-2 border-t border-slate-900/7 pt-5">
           <button onClick={save} disabled={busy} className="btn btn-primary shine min-h-[40px] px-5">
             {busy ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} 保存
           </button>
@@ -167,7 +169,7 @@ export function PaperEditor({ open, item, onClose }: Props) {
               onClick={async () => {
                 if (!confirm('删除？')) return
                 await fetch(`/api/papers/${item.id}`, { method: 'DELETE' })
-                onClose(); location.reload()
+                onClose(); router.refresh()
               }}
               className="btn btn-danger btn-ghost ml-auto h-10 w-10 justify-center p-0"
               aria-label="删除" title="删除"

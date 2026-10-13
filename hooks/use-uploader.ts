@@ -99,7 +99,7 @@ export function useUploader(onDone?: () => void) {
         dropResume(fileKey(file))
         patch(id, {
           state: 'done', progress: 100, sentBytes: file.size,
-          fileId: init.fileId, shareCode: init.shareCode, instant: true,
+          fileId: init.fileId, shareCode: init.shareCode, expiresAt: init.expiresAt, instant: true,
         })
         return
       }
@@ -190,7 +190,7 @@ export function useUploader(onDone?: () => void) {
       dropResume(fileKey(file))
       patch(id, {
         state: 'done', progress: 100, sentBytes: file.size,
-        fileId: out.fileId, shareCode: out.shareCode, deleteKey: out.deleteKey, expiresAt: out.expiresAt,
+        fileId: out.fileId, shareCode: out.shareCode, expiresAt: out.expiresAt,
       })
     } catch (e: any) {
       // 判定"是不是取消"只能看 cancel 标记，不能看 ac.signal.aborted ——

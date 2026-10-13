@@ -1,14 +1,50 @@
-import { createHmac, timingSafeEqual } from 'node:crypto'
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { cookies } from 'next/headers'
 import { db, schema } from '@/db'
 import { eq } from 'drizzle-orm'
 import { hashPassword, verifyPassword } from '@/lib/auth'
+import { authSecret } from '@/lib/secret'
 import type { FileRow } from '@/db/schema'
 
 const GRANT_TTL = 60 * 60
-const secret = () => process.env.AUTH_SECRET || 'dev-secret-change-me'
+const secret = authSecret
 const sign = (id: number, exp: number) => createHmac('sha256', secret()).update(`dl:${id}:${exp}`).digest('base64url')
 const grantName = (id: number) => `hub_dl_${id}`
+
+// ---- 访客身份：签名 Cookie，用来认出「这是我传的文件」 ----
+const VID_COOKIE = 'hub_vid'
+const VID_TTL = 60 * 60 * 24 * 365
+const signVid = (id: string) => createHmac('sha256', secret()).update(`vid:${id}`).digest('base64url')
+
+function parseVid(raw: string | undefined) {
+  if (!raw) return null
+  const [id, sig] = raw.split('.')
+  if (!id || !sig || !/^[A-Za-z0-9_-]{16,32}$/.test(id)) return null
+  const a = Buffer.from(sig)
+  const b = Buffer.from(signVid(id))
+  return a.length === b.length && timingSafeEqual(a, b) ? id : null
+}
+
+/** 只读：服务端组件也能用（不能写 Cookie）。没有或签名不对返回 null */
+export async function readVisitorId() {
+  return parseVid((await cookies()).get(VID_COOKIE)?.value)
+}
+
+/** 读取或签发访客标识。只能在 Route Handler / Server Action 里调用 */
+export async function ensureVisitorId() {
+  const jar = await cookies()
+  const existing = parseVid(jar.get(VID_COOKIE)?.value)
+  if (existing) return existing
+  const id = randomBytes(16).toString('base64url')
+  jar.set(VID_COOKIE, `${id}.${signVid(id)}`, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: VID_TTL,
+  })
+  return id
+}
 
 /** 分享口令验证通过后发一个 1 小时有效的下载凭证（HttpOnly Cookie，img/iframe 也能带上） */
 export async function setGrant(id: number) {
@@ -77,9 +113,16 @@ export type PublicFile = {
   downloads: number
   expiresAt: string | null
   createdAt: string
+  /** 当前访客自己上传的（管理员视角下恒为 false） */
+  mine: boolean
+  width: number | null
+  height: number | null
+  /** 当前访问者能否删除：管理员，或这是自己传的 */
+  canDelete: boolean
 }
 
-export function toPublicFile(f: FileRow): PublicFile {
+export function toPublicFile(f: FileRow, viewer: { admin: boolean; vid: string | null }): PublicFile {
+  const mine = !viewer.admin && !!viewer.vid && f.uploaderId === viewer.vid
   return {
     id: f.id,
     token: f.token,
@@ -92,5 +135,9 @@ export function toPublicFile(f: FileRow): PublicFile {
     downloads: f.downloads,
     expiresAt: f.expiresAt ? f.expiresAt.toISOString() : null,
     createdAt: f.createdAt.toISOString(),
+    mine,
+    width: f.width,
+    height: f.height,
+    canDelete: viewer.admin || mine,
   }
 }

@@ -1,7 +1,7 @@
 'use client'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m as motion, AnimatePresence } from 'framer-motion'
 import {
   Trophy, Plus, Pencil, Trash2, Download, Paperclip, ChevronDown, ArrowUp, ArrowDown,
   ArrowUpDown, FileText, ZoomIn, Users, Award, FilterX, FileDown, CalendarDays, Check,
@@ -9,7 +9,8 @@ import {
 import type { Category } from '@/db/schema'
 import { cn, formatBytes, fileKind } from '@/lib/utils'
 import { EmptyState, LevelBadge, LEVELS } from '@/components/ui/primitives'
-import { PageTitle, Magnetic, EASE } from '@/components/ui/fx'
+import { PageTitle } from '@/components/ui/page'
+import { Magnetic, EASE } from '@/components/ui/fx'
 import { fileUrl } from '@/lib/file-url'
 import { CompetitionEditor } from '@/components/public/competition-editor'
 import { Lightbox, type CompItem } from '@/components/public/competitions-view'
@@ -85,7 +86,8 @@ export function CompetitionsAdmin({ items, categories, startNew }: {
     const d = sort.dir === 'asc' ? 1 : -1
     return list.sort((a, b) => {
       if (sort.key === 'name') return a.name.localeCompare(b.name, 'zh-CN') * d
-      if (sort.key === 'level') return ((WEIGHT[a.level ?? ''] ?? 0) - (WEIGHT[b.level ?? ''] ?? 0)) * d || cmpDate(a, b, -1)
+      // 级别相同时按日期，且要跟随排序方向：写死 -1 会让升序下的同级行仍是降序
+      if (sort.key === 'level') return ((WEIGHT[a.level ?? ''] ?? 0) - (WEIGHT[b.level ?? ''] ?? 0)) * d || cmpDate(a, b, d)
       return cmpDate(a, b, d)
     })
   }, [items, query, level, year, cat, sort, catName])
@@ -225,7 +227,7 @@ export function CompetitionsAdmin({ items, categories, startNew }: {
                 </motion.button>
               )}
             </AnimatePresence>
-            <span className="num ml-auto pr-1.5 text-[12px] text-indigo-100/35">{filtered.length} / {items.length}</span>
+            <span className="num ml-auto pr-1.5 text-[12px] text-slate-500">{filtered.length} / {items.length}</span>
           </Toolbar>
 
           {filtered.length === 0 ? (
@@ -270,10 +272,10 @@ export function CompetitionsAdmin({ items, categories, startNew }: {
                         <Td className="py-2">
                           {cover ? (
                             <img src={fileUrl(cover, true)} alt="" loading="lazy"
-                                 className="h-9 w-9 rounded-lg border border-white/[0.08] object-cover" />
+                                 className="h-9 w-9 rounded-lg border border-slate-900/8 object-cover" />
                           ) : (
-                            <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.035]">
-                              <Trophy size={13} className="text-indigo-200/25" />
+                            <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-900/7 bg-slate-900/4">
+                              <Trophy size={13} className="text-indigo-400" />
                             </span>
                           )}
                         </Td>
@@ -281,26 +283,26 @@ export function CompetitionsAdmin({ items, categories, startNew }: {
                           <div className="flex items-center gap-1.5">
                             <ChevronDown
                               size={13}
-                              className={cn('shrink-0 text-white/25 transition-transform duration-300', open && 'rotate-180 text-sky-300')}
+                              className={cn('shrink-0 text-slate-900/40 transition-transform duration-300', open && 'rotate-180 text-sky-600')}
                             />
-                            <span className="truncate text-white/88" title={c.name}>{c.name}</span>
+                            <span className="truncate text-slate-900/88" title={c.name}>{c.name}</span>
                           </div>
                         </Td>
-                        <Td>{c.level && c.level in LEVELS ? <LevelBadge level={c.level} /> : <span className="text-white/20">—</span>}</Td>
+                        <Td>{c.level && c.level in LEVELS ? <LevelBadge level={c.level} /> : <span className="text-slate-900/40">—</span>}</Td>
                         <Td className="hidden 2xl:table-cell">
                           {category ? (
-                            <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[12.5px] text-white/60">
+                            <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[12.5px] text-slate-900/60">
                               <span className="h-1.5 w-1.5 rounded-full" style={{ background: category.color || '#64748b' }} />
                               {category.name}
                             </span>
-                          ) : <span className="text-white/20">—</span>}
+                          ) : <span className="text-slate-900/40">—</span>}
                         </Td>
-                        <Td className="num whitespace-nowrap text-[12px] text-white/50">{dateRange(c) ?? <span className="text-white/20">—</span>}</Td>
-                        <Td className="hidden max-w-[180px] truncate text-[12.5px] text-amber-200/75 2xl:table-cell">
-                          {c.result || <span className="text-white/20">—</span>}
+                        <Td className="num whitespace-nowrap text-[12px] text-slate-900/50">{dateRange(c) ?? <span className="text-slate-900/40">—</span>}</Td>
+                        <Td className="hidden max-w-[180px] truncate text-[12.5px] text-amber-700 2xl:table-cell">
+                          {c.result || <span className="text-slate-900/40">—</span>}
                         </Td>
                         <Td className="text-right">
-                          <span className={cn('num inline-flex items-center gap-1 text-[12px]', c.attachments.length ? 'text-white/60' : 'text-white/20')}>
+                          <span className={cn('num inline-flex items-center gap-1 text-[12px]', c.attachments.length ? 'text-slate-900/60' : 'text-slate-900/40')}>
                             <Paperclip size={11} />{c.attachments.length}
                           </span>
                         </Td>
@@ -365,25 +367,25 @@ export function CompetitionsAdmin({ items, categories, startNew }: {
                         </span>
                         {cover ? (
                           <img src={fileUrl(cover, true)} alt="" loading="lazy"
-                               className="h-10 w-10 shrink-0 rounded-xl border border-white/[0.08] object-cover" />
+                               className="h-10 w-10 shrink-0 rounded-xl border border-slate-900/8 object-cover" />
                         ) : (
-                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.035]">
-                            <Trophy size={14} className="text-indigo-200/25" />
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-900/7 bg-slate-900/4">
+                            <Trophy size={14} className="text-indigo-400" />
                           </span>
                         )}
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-[13.5px] text-white/88">{c.name}</p>
-                          <div className="mt-1 flex items-center gap-2 text-[11px] text-white/40">
+                          <p className="truncate text-[13.5px] text-slate-900/88">{c.name}</p>
+                          <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-900/40">
                             {c.level && c.level in LEVELS && <LevelBadge level={c.level} />}
                             <span className="num">{dateRange(c)}</span>
-                            {c.result && <span className="truncate text-amber-200/70">{c.result}</span>}
+                            {c.result && <span className="truncate text-amber-700">{c.result}</span>}
                           </div>
                         </div>
-                        <ChevronDown size={15} className={cn('shrink-0 text-white/25 transition-transform duration-300', open && 'rotate-180 text-sky-300')} />
+                        <ChevronDown size={15} className={cn('shrink-0 text-slate-900/40 transition-transform duration-300', open && 'rotate-180 text-sky-600')} />
                       </div>
 
-                      <div className="flex items-center justify-end gap-1 border-t border-white/[0.06] px-2 py-1.5">
-                        <span className={cn('num mr-auto flex items-center gap-1 pl-1.5 text-[11.5px]', c.attachments.length ? 'text-white/50' : 'text-white/20')}>
+                      <div className="flex items-center justify-end gap-1 border-t border-slate-900/6 px-2 py-1.5">
+                        <span className={cn('num mr-auto flex items-center gap-1 pl-1.5 text-[11.5px]', c.attachments.length ? 'text-slate-900/50' : 'text-slate-900/40')}>
                           <Paperclip size={11} />{c.attachments.length}
                         </span>
                         <button
@@ -483,24 +485,24 @@ function Preview({ c, category, onEdit, pad = 'indent' }: {
 
   return (
     <div className={cn(
-      'border-t border-white/[0.06] bg-gradient-to-b from-sky-400/[0.045] via-indigo-400/[0.02] to-transparent py-4',
+      'border-t border-slate-900/6 bg-gradient-to-b from-sky-400/[0.045] via-indigo-400/[0.02] to-transparent py-4',
       pad === 'indent' ? 'px-4 pl-[68px]' : 'px-3',
     )}>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-indigo-100/45">
-        {c.result && <span className="flex items-center gap-1 text-amber-200/75"><Award size={11} />{c.result}</span>}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-slate-500">
+        {c.result && <span className="flex items-center gap-1 text-amber-700"><Award size={11} />{c.result}</span>}
         {c.team && <span className="flex items-center gap-1"><Users size={11} />{c.team}</span>}
-        {category && <span className="flex items-center gap-1"><span className="text-indigo-300/60">#</span>{category}</span>}
+        {category && <span className="flex items-center gap-1"><span className="text-indigo-500">#</span>{category}</span>}
         <button onClick={onEdit} className="btn btn-ghost btn-sm btn-icon ml-auto" aria-label="编辑" title="编辑">
           <Pencil size={12} />
         </button>
       </div>
 
       {c.description && (
-        <p className="mt-2 line-clamp-3 max-w-3xl whitespace-pre-wrap text-[12.5px] leading-relaxed text-white/50">{c.description}</p>
+        <p className="mt-2 line-clamp-3 max-w-3xl whitespace-pre-wrap text-[12.5px] leading-relaxed text-slate-900/50">{c.description}</p>
       )}
 
       {c.attachments.length === 0 ? (
-        <p className="mt-3 text-[12.5px] text-indigo-100/25">∅</p>
+        <p className="mt-3 text-[12.5px] text-slate-500">∅</p>
       ) : (
         <div className="mt-3 flex flex-wrap gap-2">
           {images.map((a, i) => (
@@ -509,13 +511,13 @@ function Preview({ c, category, onEdit, pad = 'indent' }: {
               initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, ease: EASE, delay: Math.min(i, 8) * 0.03 }}
               onClick={() => setLightbox(i)}
-              className="group relative h-20 w-28 overflow-hidden rounded-xl border border-white/[0.08]"
+              className="group relative h-20 w-28 overflow-hidden rounded-xl border border-slate-900/8"
               aria-label="查看图片"
             >
               <img src={fileUrl(a.file!, true)} alt={a.caption ?? ''} loading="lazy"
                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.07]" />
-              <span className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition-opacity group-hover:opacity-100">
-                <ZoomIn size={14} className="text-white/85" />
+              <span className="absolute inset-0 flex items-center justify-center bg-slate-900/35 opacity-0 transition-opacity group-hover:opacity-100">
+                <ZoomIn size={14} className="text-slate-900/85" />
               </span>
             </motion.button>
           ))}
@@ -525,13 +527,13 @@ function Preview({ c, category, onEdit, pad = 'indent' }: {
               href={fileUrl(a.file!)}
               className="liquid liquid-hover spotlight flex h-20 w-44 flex-col justify-between rounded-xl p-2.5"
             >
-              <span className="flex items-center gap-1.5 text-indigo-100/45">
+              <span className="flex items-center gap-1.5 text-slate-500">
                 <FileText size={13} />
                 <Download size={11} className="ml-auto" />
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-[12px] text-white/75" title={a.file!.originalName}>{a.file!.originalName}</span>
-                <span className="num text-[10.5px] text-white/30">{formatBytes(a.file!.size)}</span>
+                <span className="block truncate text-[12px] text-slate-900/75" title={a.file!.originalName}>{a.file!.originalName}</span>
+                <span className="num text-[10.5px] text-slate-900/40">{formatBytes(a.file!.size)}</span>
               </span>
             </a>
           ))}
@@ -557,7 +559,7 @@ function LevelChip({ active, onClick, label, n, dot }: {
       onClick={onClick}
       className={cn(
         'relative inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] transition-colors duration-200 min-h-9 xl:w-full xl:justify-between xl:rounded-xl xl:px-2.5',
-        active ? 'border-indigo-300/25 text-white' : 'border-white/[0.07] bg-white/[0.025] text-indigo-100/55 hover:border-indigo-300/20 hover:text-white/85',
+        active ? 'border-indigo-300/25 text-slate-900' : 'border-slate-900/7 bg-slate-900/2 text-slate-600 hover:border-indigo-300/20 hover:text-slate-900/85',
       )}
     >
       {active && (
@@ -572,7 +574,7 @@ function LevelChip({ active, onClick, label, n, dot }: {
         {dot && <span className="h-1.5 w-1.5 rounded-full" style={{ background: dot, boxShadow: `0 0 8px ${dot}` }} />}
         {label}
       </span>
-      <span className={cn('num relative', active ? 'text-white/60' : 'text-indigo-100/35')}>{n}</span>
+      <span className={cn('num relative', active ? 'text-slate-900/60' : 'text-slate-500')}>{n}</span>
     </button>
   )
 }
@@ -580,9 +582,9 @@ function LevelChip({ active, onClick, label, n, dot }: {
 function Mini({ icon, value, label }: { icon: React.ReactNode; value: number; label: string }) {
   return (
     <div className="liquid liquid-hover spotlight flex items-center gap-2 rounded-xl px-3 py-2" title={label}>
-      <span className="text-indigo-200/70">{icon}</span>
-      <span className="num text-[15px] font-semibold tracking-tight text-white/90">{value}</span>
-      <span className="text-[11px] text-indigo-100/45">{label}</span>
+      <span className="text-indigo-500">{icon}</span>
+      <span className="num text-[15px] font-semibold tracking-tight text-slate-900/90">{value}</span>
+      <span className="text-[11px] text-slate-500">{label}</span>
     </div>
   )
 }
@@ -596,7 +598,7 @@ function SortTh({ label, k, sort, onSort }: {
     <Th aria-sort={on ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined}>
       <button
         onClick={() => onSort(k)}
-        className={cn('inline-flex items-center gap-1 uppercase transition-colors', on ? 'text-sky-200' : 'hover:text-white/70')}
+        className={cn('inline-flex items-center gap-1 uppercase transition-colors', on ? 'text-sky-600' : 'hover:text-slate-900/70')}
       >
         {label}
         <Icon size={11} className={on ? 'opacity-90' : 'opacity-35'} />
@@ -628,7 +630,7 @@ function ArmedDelete({ onConfirm, disabled, iconLg }: {
       className={cn(
         'btn btn-danger p-0',
         iconLg ? 'h-10 w-10' : 'btn-sm btn-icon h-8 w-8 p-0',
-        armed ? 'border-rose-400/45 bg-rose-500/20 text-rose-200 shadow-[0_0_18px_-4px_rgb(244_63_94/0.7)]' : 'btn-ghost',
+        armed ? 'border-rose-400/45 bg-rose-500/20 text-rose-600 shadow-[0_0_18px_-4px_rgb(244_63_94/0.7)]' : 'btn-ghost',
       )}
       aria-label={armed ? '确认删除' : '删除'}
       title={armed ? '删除？' : '删除'}

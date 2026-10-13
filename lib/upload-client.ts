@@ -13,7 +13,6 @@ export type Task = {
   uploadId?: string
   fileId?: number
   shareCode?: string
-  deleteKey?: string
   expiresAt?: string | null
   instant?: boolean
   sentBytes: number

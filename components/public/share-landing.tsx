@@ -1,5 +1,5 @@
 'use client'
-import { motion, useAnimationControls } from 'framer-motion'
+import { m as motion, useAnimationControls } from 'framer-motion'
 import {
   Download, FileText, Image as ImageIcon, FileArchive, Film, Music, Code2,
   Table2, File as FileIcon, Clock, Loader2, Lock, ArrowRight, Hourglass, CalendarDays, TimerOff,
@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import { fileUrl } from '@/lib/file-url'
 import { useEffect, useState } from 'react'
 import { cn, formatBytes, fileKind } from '@/lib/utils'
-import { EASE } from '@/components/ui/fx'
+import { EASE } from '@/lib/motion'
 
 const ICONS: Record<string, React.ElementType> = {
   image: ImageIcon, pdf: FileText, archive: FileArchive, video: Film,
@@ -51,9 +51,9 @@ export function ShareLanding({ file, expired, locked }: { file: FileInfo; expire
     return (
       <motion.div {...enter} className="liquid flex w-full max-w-xs flex-col items-center gap-4 rounded-3xl px-8 py-10">
         <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-300/25 bg-amber-300/10">
-          <TimerOff size={22} className="text-amber-200" />
+          <TimerOff size={22} className="text-amber-700" />
         </span>
-        <h1 className="text-[15px] font-medium text-indigo-50/80">已过期</h1>
+        <h1 className="text-[15px] font-medium text-slate-700">已过期</h1>
       </motion.div>
     )
   }
@@ -61,17 +61,19 @@ export function ShareLanding({ file, expired, locked }: { file: FileInfo; expire
   const info = (
     <div className="flex h-full flex-col">
       <div className="flex items-start gap-4">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-sky-300/15 via-indigo-400/10 to-purple-400/15">
-          <Icon size={20} className="text-indigo-50/80" />
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-slate-900/10 bg-gradient-to-br from-sky-300/15 via-indigo-400/10 to-purple-400/15">
+          <Icon size={20} className="text-slate-700" />
         </span>
-        <h1 className="min-w-0 flex-1 break-words pt-1 text-[16px] font-medium leading-snug text-white/90">{file.name}</h1>
+        <h1 className="min-w-0 flex-1 break-words pt-1 text-[16px] font-medium leading-snug text-slate-900/90">{file.name}</h1>
       </div>
 
       <dl className="mt-6 grid grid-cols-2 gap-2 text-[12px]">
         <Meta icon={<FileIcon size={12} />} label="大小">{formatBytes(file.size)}</Meta>
         <Meta icon={<Download size={12} />} label="下载次数">{file.downloads}</Meta>
         <Meta icon={<CalendarDays size={12} />} label="上传">
-          {new Date(file.createdAt).toLocaleDateString('zh-CN')}
+          {/* 固定格式并显式指定时区：toLocaleDateString 会按服务器/浏览器时区各算各的，
+              跨时区时水合前后的日期可能差一天 */}
+          {fmtDate(file.createdAt)}
         </Meta>
         {file.expiresAt && (
           <Meta icon={<Clock size={12} />} label="剩余" tone="amber">
@@ -105,7 +107,7 @@ export function ShareLanding({ file, expired, locked }: { file: FileInfo; expire
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.7, delay: 0.15, ease: EASE }}
-            className="overflow-hidden rounded-2xl border border-white/[0.07] bg-black/20"
+            className="overflow-hidden rounded-2xl border border-slate-900/7 bg-slate-900/20"
           >
             <Preview file={file} kind={kind} />
           </motion.div>
@@ -115,7 +117,7 @@ export function ShareLanding({ file, expired, locked }: { file: FileInfo; expire
         <>
           {info}
           {kind === 'audio' && (
-            <div className="mt-5 overflow-hidden rounded-2xl border border-white/[0.07]">
+            <div className="mt-5 overflow-hidden rounded-2xl border border-slate-900/7">
               <Preview file={file} kind={kind} />
             </div>
           )}
@@ -138,14 +140,22 @@ function Meta({ icon, label, children, tone }: { icon: React.ReactNode; label: s
     <div
       title={label}
       className={cn(
-        'flex min-w-0 items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2.5',
-        tone === 'amber' ? 'text-amber-200/80' : 'text-indigo-100/55',
+        'flex min-w-0 items-center gap-2 rounded-xl border border-slate-900/6 bg-slate-900/3 px-3 py-2.5',
+        tone === 'amber' ? 'text-amber-700' : 'text-slate-600',
       )}
     >
       <dt className="shrink-0 opacity-70" aria-label={label}>{icon}</dt>
       <dd className="num truncate">{children}</dd>
     </div>
   )
+}
+
+/** YYYY/MM/DD，用 UTC 计算，保证服务端与各时区浏览器算出来一致 */
+function fmtDate(iso: string) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getUTCFullYear()}/${p(d.getUTCMonth() + 1)}/${p(d.getUTCDate())}`
 }
 
 function left(iso: string) {
@@ -190,8 +200,8 @@ function Unlock({ code }: { code: string }) {
       {...enter}
       className="liquid flex w-full max-w-xs flex-col items-center rounded-3xl px-7 py-9"
     >
-      <span className="pulse-ring flex h-14 w-14 items-center justify-center rounded-2xl border border-indigo-200/20 bg-gradient-to-br from-sky-300/20 via-indigo-400/15 to-purple-400/20">
-        <Lock size={22} className="text-indigo-50" />
+      <span className="pulse-ring flex h-14 w-14 items-center justify-center rounded-2xl border border-indigo-300/35 bg-gradient-to-br from-sky-300/20 via-indigo-400/15 to-purple-400/20">
+        <Lock size={22} className="text-slate-800" />
       </span>
       <motion.div animate={shake} className="mt-7 flex w-full gap-2">
         <input
@@ -203,7 +213,7 @@ function Unlock({ code }: { code: string }) {
           {busy ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
         </button>
       </motion.div>
-      <div className="mt-3 h-4 text-[12px] text-rose-300" aria-live="polite">
+      <div className="mt-3 h-4 text-[12px] text-rose-600" aria-live="polite">
         {err && wait && <span className="flex items-center gap-1"><Hourglass size={12} /><span className="num">{wait}s</span></span>}
       </div>
     </motion.form>

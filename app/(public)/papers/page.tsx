@@ -2,7 +2,7 @@ import { db, schema } from '@/db'
 import { asc, desc, eq, sql } from 'drizzle-orm'
 import { BookOpen } from 'lucide-react'
 import { isAuthed } from '@/lib/auth'
-import { PageTitle } from '@/components/ui/fx'
+import { PageTitle } from '@/components/ui/page'
 import { PapersView } from '@/components/public/papers-view'
 import { LockedNotice } from '@/components/public/locked-notice'
 

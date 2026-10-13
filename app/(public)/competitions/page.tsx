@@ -2,7 +2,7 @@ import { db, schema } from '@/db'
 import { asc, desc, eq, sql } from 'drizzle-orm'
 import { isAuthed } from '@/lib/auth'
 import { Trophy } from 'lucide-react'
-import { PageTitle } from '@/components/ui/fx'
+import { PageTitle } from '@/components/ui/page'
 import { CompetitionsView } from '@/components/public/competitions-view'
 import { LockedNotice } from '@/components/public/locked-notice'
 

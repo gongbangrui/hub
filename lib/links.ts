@@ -15,26 +15,36 @@ export function normalizeUrl(raw: string) {
 
 export type ParsedBookmark = { title: string; url: string; folder?: string }
 
-/** 解析浏览器导出的 Netscape 书签 HTML */
+/**
+ * 解析浏览器导出的 Netscape 书签 HTML。
+ * 结构是 <DT><H3>文件夹</H3><DL> …条目… </DL>：H3 给出名字，紧随其后的 <DL> 才是它的内容，
+ * 所以用栈跟踪 <DL>/</DL>，条目归属于栈顶（最内层）文件夹；根部的 <DL> 压入空名。
+ */
 export function parseBookmarksHtml(html: string): ParsedBookmark[] {
   const out: ParsedBookmark[] = []
-  const folderStack: string[] = []
-  const re = /<(h3|a)\b([^>]*)>([\s\S]*?)<\/\1>/gi
+  const stack: string[] = []
+  let pending: string | null = null
+  // 内容长度设上限：未闭合的 <a> 否则会让懒匹配扫到文件末尾，8MB 输入下是平方级
+  const re = /<(h3|a)\b([^>]*)>([\s\S]{0,2000}?)<\/\1\s*>|<dl\b[^>]*>|<\/dl\s*>/gi
   let m: RegExpExecArray | null
 
   while ((m = re.exec(html))) {
-    const [, tag, attrs, inner] = m
-    if (tag.toLowerCase() === 'h3') {
-      folderStack.push(decodeEntities(inner.replace(/<[^>]+>/g, '')).trim())
-      // 文件夹闭合靠 </dl>，下面单独处理
-    } else {
-      const href = /href\s*=\s*["']([^"']+)["']/i.exec(attrs)?.[1]
+    const tag = m[1]?.toLowerCase()
+    if (tag === 'h3') {
+      pending = decodeEntities(m[3].replace(/<[^>]+>/g, '')).trim()
+    } else if (tag === 'a') {
+      const href = /href\s*=\s*["']([^"']+)["']/i.exec(m[2])?.[1]
       if (!href || !/^https?:/i.test(href)) continue
       out.push({
-        title: decodeEntities(inner.replace(/<[^>]+>/g, '')).trim() || href,
+        title: decodeEntities(m[3].replace(/<[^>]+>/g, '')).trim() || href,
         url: href,
-        folder: folderStack[folderStack.length - 1],
+        folder: stack[stack.length - 1] || undefined,
       })
+    } else if (/^<dl/i.test(m[0])) {
+      stack.push(pending ?? '')
+      pending = null
+    } else {
+      stack.pop()
     }
   }
   return out

@@ -8,8 +8,14 @@ export const newShareCode = customAlphabet(CODE_ALPHABET, 7)
 export const newDeleteKey = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 32)
 
 export const CHUNK_SIZE = 4 * 1024 * 1024
+/** 4GB / 4MB = 1024 片；留出余量并跟随 CHUNK_SIZE 变化，避免调小分片后上限失效 */
+export const MAX_CHUNKS = Math.ceil((4 * 1024 * 1024 * 1024) / CHUNK_SIZE) + 2
 export const GUEST_TTL_MS = 24 * 60 * 60 * 1000
 export const MAX_FILE_SIZE = 4 * 1024 * 1024 * 1024 // 4GB
+/** 访客临时文件配额：单个访客 / 全站访客合计（env 可调，单位 GB） */
+const gb = (v: string | undefined, d: number) => Math.max(0.1, Number(v) || d) * 1024 ** 3
+export const GUEST_VISITOR_QUOTA = () => gb(process.env.GUEST_VISITOR_QUOTA_GB, 8)
+export const GUEST_TOTAL_QUOTA = () => gb(process.env.GUEST_TOTAL_QUOTA_GB, 10)
 
 /** uploadId 只允许安全字符，防止路径穿越 */
 export function isSafeUploadId(id: unknown): id is string {
@@ -49,3 +55,6 @@ export function sampleFingerprint(absPath: string, size: number) {
 
   return h.digest('hex')
 }
+
+/** 站点总存储配额(仅用于首页展示的占用比例,不做强制) */
+export const STORAGE_QUOTA = () => gb(process.env.STORAGE_QUOTA_GB, 10)

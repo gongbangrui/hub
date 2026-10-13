@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m as motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, Pin, PinOff, Pencil, Trash2, GripVertical, ExternalLink, Bookmark, RotateCcw,
   SearchX, Layers, CircleDashed, Hash, FolderInput, MousePointerClick,
@@ -84,11 +84,15 @@ export function LinksAdmin({ links, categories, autoNew }: {
 
   /* ---------- 写操作（乐观更新，失败回滚） ---------- */
 
-  async function optimistic(next: LinkRow[], fn: () => Promise<unknown>, msg?: string) {
-    const prev = rows
+  /**
+   * 乐观更新。失败时用 undo 只回滚自己改动过的那几行 ——
+   * 不能整份恢复请求前的快照：这期间若有一次 router.refresh() 拿到新数据，
+   * 整份恢复会把服务端已经删掉的行又摆回列表里。
+   */
+  async function optimistic(next: LinkRow[], fn: () => Promise<unknown>, undo: (cur: LinkRow[]) => LinkRow[], msg?: string) {
     setRows(next)
     const r = await run(fn, msg)
-    if (r === undefined) setRows(prev)
+    if (r === undefined) setRows((cur) => undo(cur))
     return r !== undefined
   }
 
@@ -97,27 +101,38 @@ export function LinksAdmin({ links, categories, autoNew }: {
 
   function setPinned(list: number[], pinned: boolean) {
     const s = new Set(list)
+    const prevPinned = new Map(rows.filter((r) => s.has(r.id)).map((r) => [r.id, r.pinned]))
     return optimistic(
       byPinned(rows.map((r) => (s.has(r.id) ? { ...r, pinned } : r))),
       patchAll(list, { pinned }),
+      (cur) => cur.map((r) => (prevPinned.has(r.id) ? { ...r, pinned: prevPinned.get(r.id)! } : r)),
       list.length > 1 ? (pinned ? '已置顶' : '已取消') : undefined,
     )
   }
 
   function move(list: number[], categoryId: number | null) {
     const s = new Set(list)
+    const prevCat = new Map(rows.filter((r) => s.has(r.id)).map((r) => [r.id, r.categoryId]))
     return optimistic(
       rows.map((r) => (s.has(r.id) ? { ...r, categoryId } : r)),
       patchAll(list, { categoryId }),
+      (cur) => cur.map((r) => (prevCat.has(r.id) ? { ...r, categoryId: prevCat.get(r.id) ?? null } : r)),
       '已移动',
     )
   }
 
   function remove(list: number[]) {
     const s = new Set(list)
+    // 记住被删的行与位置，失败时插回原处
+    const prevRows = rows.map((r, i) => [r, i] as const).filter(([r]) => s.has(r.id))
     return optimistic(
       rows.filter((r) => !s.has(r.id)),
       () => Promise.all(list.map((id) => api(`/api/links/${id}`, { method: 'DELETE' }))),
+      (cur) => {
+        const out = [...cur]
+        for (const [row, at] of prevRows) if (!out.some((r) => r.id === row.id)) out.splice(at, 0, row)
+        return out.sort((a, b) => a.sort - b.sort)
+      },
       '已删除',
     )
   }
@@ -157,7 +172,14 @@ export function LinksAdmin({ links, categories, autoNew }: {
     const next = rows.filter((r) => r.id !== src.id)
     next.splice(next.findIndex((r) => r.id === target.id) + (target.after ? 1 : 0), 0, src)
     if (next.every((r, i) => r.id === rows[i].id)) return
-    await optimistic(next, () => api('/api/links/reorder', { method: 'POST', body: { ids: next.map((r) => r.id) } }), '✓')
+    // 拖拽失败就整体恢复成排序前的顺序
+    const before = rows
+    await optimistic(
+      next,
+      () => api('/api/links/reorder', { method: 'POST', body: { ids: next.map((r) => r.id) } }),
+      () => before,
+      '✓',
+    )
   }
 
   /* ---------- 渲染 ---------- */
@@ -238,7 +260,7 @@ export function LinksAdmin({ links, categories, autoNew }: {
                     initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }}
                     transition={{ duration: 0.24, ease: EASE }}
                   >
-                    <span className="num rounded-full border border-indigo-300/20 bg-indigo-400/10 px-2 py-0.5 text-[11.5px] text-indigo-100/70">
+                    <span className="num rounded-full border border-indigo-300/20 bg-indigo-400/10 px-2 py-0.5 text-[11.5px] text-slate-600">
                       {filtered.length}/{rows.length}
                     </span>
                     <button onClick={reset} className="btn btn-ghost h-10 w-10 p-0" aria-label="重置" title="重置">
@@ -311,7 +333,7 @@ export function LinksAdmin({ links, categories, autoNew }: {
                         <span
                           onPointerDown={() => setArmed(l.id)}
                           onClick={(e) => e.stopPropagation()}
-                          className="hidden cursor-grab rounded p-0.5 text-white/20 transition-colors hover:text-indigo-200/80 active:cursor-grabbing md:inline-flex"
+                          className="hidden cursor-grab rounded p-0.5 text-slate-900/40 transition-colors hover:text-indigo-500 active:cursor-grabbing md:inline-flex"
                           aria-label="拖动排序"
                           title="拖动排序"
                         >
@@ -324,7 +346,7 @@ export function LinksAdmin({ links, categories, autoNew }: {
                       <div className="flex min-w-0 items-center gap-2.5">
                         <Favicon link={l} />
                         <div className="min-w-0">
-                          <span className="block truncate font-medium text-white/90" title={l.title}>
+                          <span className="block truncate font-medium text-slate-900/90" title={l.title}>
                             {l.title}
                           </span>
                           <a
@@ -332,7 +354,7 @@ export function LinksAdmin({ links, categories, autoNew }: {
                             target="_blank"
                             rel="noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="block truncate text-[11.5px] text-white/35 transition-colors hover:text-sky-200"
+                            className="block truncate text-[11.5px] text-slate-900/40 transition-colors hover:text-sky-600"
                             title={l.url}
                           >
                             {hostOf(l.url)}
@@ -345,13 +367,13 @@ export function LinksAdmin({ links, categories, autoNew }: {
                       {c ? (
                         <button
                           onClick={(e) => { e.stopPropagation(); setCat(c.id) }}
-                          className="inline-flex max-w-[140px] items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[12px] text-white/70 transition-colors hover:border-indigo-300/35"
+                          className="inline-flex max-w-[140px] items-center gap-1.5 rounded-full border border-slate-900/10 bg-slate-900/4 px-2 py-0.5 text-[12px] text-slate-900/70 transition-colors hover:border-indigo-300/35"
                         >
                           <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: c.color ?? '#818cf8' }} />
                           <span className="truncate">{c.name}</span>
                         </button>
                       ) : (
-                        <span className="text-[12px] text-white/22">—</span>
+                        <span className="text-[12px] text-slate-900/40">—</span>
                       )}
                     </Td>
 
@@ -363,21 +385,21 @@ export function LinksAdmin({ links, categories, autoNew }: {
                             onClick={(e) => { e.stopPropagation(); setTag(t) }}
                             className={cn(
                               'rounded-md px-1.5 py-px text-[11.5px] transition-colors',
-                              tag === t ? 'bg-violet-400/15 text-violet-200' : 'bg-white/[0.05] text-white/45 hover:text-white/80',
+                              tag === t ? 'bg-violet-400/15 text-violet-600' : 'bg-slate-900/5 text-slate-900/45 hover:text-slate-900/80',
                             )}
                           >
                             #{t}
                           </button>
                         ))}
-                        {(l.tags?.length ?? 0) > 4 && <span className="num text-[11px] text-white/25">+{l.tags!.length - 4}</span>}
+                        {(l.tags?.length ?? 0) > 4 && <span className="num text-[11px] text-slate-900/40">+{l.tags!.length - 4}</span>}
                       </div>
                     </Td>
 
                     <Td className="text-center">
-                      <Switch on={l.pinned} onChange={(v) => setPinned([l.id], v)} />
+                      <Switch on={l.pinned} disabled={pending} onChange={(v) => setPinned([l.id], v)} />
                     </Td>
 
-                    <Td className="num hidden text-right text-white/55 md:table-cell">{l.clickCount}</Td>
+                    <Td className="num hidden text-right text-slate-900/55 md:table-cell">{l.clickCount}</Td>
 
                     <Td>
                       <div className="flex items-center justify-end gap-0.5 opacity-70 transition-opacity group-hover:opacity-100">
@@ -429,7 +451,7 @@ export function LinksAdmin({ links, categories, autoNew }: {
           <PinOff size={13} />
         </button>
         <label className="relative" title="移动到">
-          <FolderInput size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-indigo-200/70" />
+          <FolderInput size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-indigo-500" />
           <select
             value=""
             disabled={pending}
@@ -478,7 +500,7 @@ function Rail({ id, items, value, onChange }: {
             aria-pressed={on}
             className={cn(
               'relative flex min-h-10 shrink-0 items-center gap-2.5 rounded-2xl px-3 text-left text-[13px] transition-colors duration-200',
-              on ? 'text-white' : 'text-white/55 hover:bg-white/[0.04] hover:text-white/85',
+              on ? 'text-slate-900' : 'text-slate-900/55 hover:bg-slate-900/4 hover:text-slate-900/85',
             )}
           >
             {on && (
@@ -491,7 +513,7 @@ function Rail({ id, items, value, onChange }: {
             )}
             <span className="relative flex w-3.5 shrink-0 items-center justify-center">{it.icon}</span>
             <span className="relative max-w-[9rem] truncate xl:flex-1">{it.label}</span>
-            <span className={cn('num relative text-[11px]', on ? 'text-indigo-100/80' : 'text-white/30')}>{it.count}</span>
+            <span className={cn('num relative text-[11px]', on ? 'text-slate-700' : 'text-slate-900/40')}>{it.count}</span>
           </button>
         )
       })}
@@ -503,13 +525,13 @@ function Rail({ id, items, value, onChange }: {
 
 function Favicon({ link }: { link: LinkRow }) {
   return (
-    <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.04]">
+    <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-900/8 bg-slate-900/4">
       <FaviconBase url={link.url} title={link.title} size={20} radius="rounded-md" />
     </span>
   )
 }
 
-function Switch({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+function Switch({ on, onChange, disabled }: { on: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
     <button
       type="button"
@@ -517,19 +539,21 @@ function Switch({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
       aria-checked={on}
       aria-label="置顶"
       title="置顶"
-      onClick={(e) => { e.stopPropagation(); onChange(!on) }}
-      className="inline-flex h-10 items-center justify-center px-1"
+      disabled={disabled}
+      // 连点两次会先后发两个相反的 PATCH，最终落库的和开关显示的可能对不上
+      onClick={(e) => { e.stopPropagation(); if (!disabled) onChange(!on) }}
+      className="inline-flex h-10 items-center justify-center px-1 disabled:opacity-50"
     >
       <span
         className={cn(
           'relative inline-flex h-[18px] w-8 shrink-0 items-center rounded-full border transition-colors duration-300',
           on
             ? 'border-transparent bg-gradient-to-r from-sky-300 via-indigo-400 to-purple-400 shadow-[0_0_12px_-2px_rgb(129_140_248/0.7)]'
-            : 'border-white/15 bg-white/[0.06]',
+            : 'border-slate-900/14 bg-slate-900/6',
         )}
       >
         <motion.span
-          className={cn('absolute h-3 w-3 rounded-full', on ? 'bg-[#060818]' : 'bg-white/45')}
+          className={cn('absolute h-3 w-3 rounded-full', on ? 'bg-white/90' : 'bg-slate-900/12')}
           animate={{ x: on ? 16 : 3 }}
           transition={{ type: 'spring', stiffness: 520, damping: 32 }}
         />
@@ -563,7 +587,7 @@ function ConfirmDelete({ onConfirm, compact, disabled, count }: {
         'btn btn-danger',
         compact ? 'btn-sm h-10 min-w-10 px-0 md:h-8 md:min-w-8' : 'btn-sm h-9 min-w-9 px-0',
         compact && !armed && 'btn-ghost',
-        armed && 'border-rose-400/45 bg-rose-500/16 px-2.5 text-rose-200',
+        armed && 'border-rose-400/45 bg-rose-500/16 px-2.5 text-rose-600',
       )}
       aria-label={armed ? '确认删除' : '删除'}
       title="删除"

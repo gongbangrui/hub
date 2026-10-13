@@ -2,12 +2,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m as motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Bookmark, FolderOpen, Trophy, FileText, Tags, Settings,
   House, LogOut, Menu, X, Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { toast } from '@/components/admin/ui'
 
 const EASE = [0.22, 1, 0.36, 1] as const
 
@@ -32,7 +33,7 @@ function Logo() {
     <span className="relative flex h-9 w-9 shrink-0 items-center justify-center">
       <span className="absolute inset-0 rounded-xl bg-gradient-to-br from-sky-300 via-indigo-400 to-purple-400 shadow-[0_6px_22px_-6px_rgb(129_140_248/0.9)]" />
       <span className="absolute inset-[1px] rounded-[11px] bg-gradient-to-b from-white/35 to-transparent opacity-60" />
-      <span className="relative h-2.5 w-2.5 rounded-[4px] bg-[#060818]" />
+      <span className="relative h-2.5 w-2.5 rounded-[4px] bg-white/90" />
     </span>
   )
 }
@@ -46,7 +47,7 @@ function Brand({ title, mode }: { title: string; mode: Mode }) {
       className={cn('flex min-w-0 items-center gap-2.5 rounded-xl', mode === 'rail' && 'md:justify-center lg:justify-start lg:px-1.5')}
     >
       <Logo />
-      <span className={cn('truncate text-[15px] font-semibold tracking-tight text-white/95', mode === 'rail' && 'md:hidden lg:inline')}>
+      <span className={cn('truncate text-[15px] font-semibold tracking-tight text-slate-900/95', mode === 'rail' && 'md:hidden lg:inline')}>
         {title}
       </span>
     </Link>
@@ -73,7 +74,7 @@ function NavList({ layoutId, mode, onNavigate }: { layoutId: string; mode: Mode;
             {active && (
               <motion.span
                 layoutId={layoutId}
-                className="absolute inset-0 rounded-xl border border-indigo-200/20 bg-[image:var(--grad-soft)] shadow-[inset_0_1px_0_rgb(255_255_255/0.14),0_0_24px_-8px_rgb(129_140_248/0.8)]"
+                className="absolute inset-0 rounded-xl border border-indigo-300/35 bg-[image:var(--grad-soft)] shadow-[inset_0_1px_0_rgb(255_255_255/0.14),0_0_24px_-8px_rgb(129_140_248/0.8)]"
                 transition={{ type: 'spring', stiffness: 420, damping: 34 }}
               >
                 <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-gradient-to-b from-sky-300 via-indigo-400 to-purple-400 shadow-[0_0_10px_rgb(165_180_252/0.9)]" />
@@ -83,13 +84,13 @@ function NavList({ layoutId, mode, onNavigate }: { layoutId: string; mode: Mode;
               className={cn(
                 'relative z-[1] flex h-10 items-center gap-3 rounded-xl px-3 text-[13.5px] transition-colors duration-200',
                 rail && 'md:justify-center md:px-0 lg:justify-start lg:px-3',
-                active ? 'text-white' : 'text-indigo-100/50 group-hover:bg-white/[0.04] group-hover:text-white/90',
+                active ? 'text-slate-900' : 'text-slate-600 group-hover:bg-slate-900/4 group-hover:text-slate-900/90',
               )}
             >
               <n.icon
                 size={18}
                 strokeWidth={active ? 2.2 : 1.9}
-                className={cn('shrink-0 transition-transform duration-300 group-hover:scale-110', active && 'text-sky-200 drop-shadow-[0_0_6px_rgb(125_211_252/0.7)]')}
+                className={cn('shrink-0 transition-transform duration-300 group-hover:scale-110', active && 'text-sky-600 drop-shadow-[0_0_6px_rgb(125_211_252/0.7)]')}
               />
               <span className={cn(rail && 'md:hidden lg:inline')}>{n.label}</span>
             </span>
@@ -104,20 +105,29 @@ function Footer({ mode }: { mode: Mode }) {
   const [busy, setBusy] = useState(false)
   async function logout() {
     setBusy(true)
-    try { await fetch('/api/logout', { method: 'POST' }) } finally { window.location.href = '/' }
+    // 只有确认清掉了会话才跳走：fetch 解析到 4xx/5xx 并不抛错，
+    // 之前用 finally 跳转会在退出失败时留下仍然有效的会话，让人以为已经登出
+    try {
+      const r = await fetch('/api/logout', { method: 'POST' })
+      if (!r.ok) throw new Error(`退出失败 ${r.status}`)
+      window.location.href = '/'
+    } catch (e) {
+      toast(e instanceof Error ? e.message : '退出失败', 'err')
+      setBusy(false)
+    }
   }
   const rail = mode === 'rail'
-  const btn = 'flex h-10 w-10 items-center justify-center rounded-xl text-indigo-100/50 transition-all duration-200 active:scale-95'
+  const btn = 'flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 transition-all duration-200 active:scale-95'
   return (
     <div className={cn('relative flex items-center gap-1 pt-3', rail && 'md:flex-col lg:flex-row')}>
       <div className="hairline absolute inset-x-1 top-0" />
-      <Link href="/" className={cn(btn, 'hover:bg-white/[0.07] hover:text-white')} title="前台" aria-label="前台">
+      <Link href="/" className={cn(btn, 'hover:bg-slate-900/7 hover:text-slate-900')} title="前台" aria-label="前台">
         <House size={17} />
       </Link>
       <button
         onClick={logout}
         disabled={busy}
-        className={cn(btn, 'hover:bg-rose-500/12 hover:text-rose-300 disabled:opacity-40')}
+        className={cn(btn, 'hover:bg-rose-500/12 hover:text-rose-600 disabled:opacity-40')}
         title="退出"
         aria-label="退出"
       >
@@ -183,9 +193,9 @@ export function Sidebar({ title }: { title: string }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.25, ease: EASE }}
-                className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full border border-indigo-200/15 bg-[image:var(--grad-soft)] px-2.5 py-1 text-[12.5px] text-white/85"
+                className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full border border-indigo-300/30 bg-[image:var(--grad-soft)] px-2.5 py-1 text-[12.5px] text-slate-900/85"
               >
-                <current.icon size={13} className="text-sky-200" />
+                <current.icon size={13} className="text-sky-600" />
                 {current.label}
               </motion.span>
             )}
@@ -198,7 +208,7 @@ export function Sidebar({ title }: { title: string }) {
         {open && (
           <div className="fixed inset-0 z-50 md:hidden">
             <motion.div
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-slate-900/35 backdrop-blur-sm"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }} onClick={() => setOpen(false)}
             />

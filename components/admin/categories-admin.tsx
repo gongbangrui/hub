@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m as motion, AnimatePresence } from 'framer-motion'
 import { Bookmark, Trophy, FileText, Tags, GripVertical, Plus, Trash2, Pencil, Pipette, Check, SearchX, Hash } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { EmptyState, ConfirmButton } from '@/components/ui/primitives'
@@ -30,7 +30,7 @@ const KINDS: { key: Kind; label: string; icon: typeof Bookmark }[] = [
 ]
 
 /** 浅蓝 → 紫 为主，末尾保留三种语义色 */
-export const PALETTE = ['#7dd3fc', '#60a5fa', '#818cf8', '#a78bfa', '#c084fc', '#fb7185', '#fbbf24', '#34d399']
+export const PALETTE = ['#38bdf8', '#60a5fa', '#818cf8', '#a78bfa', '#c084fc', '#fb7185', '#f59e0b', '#34d399']
 
 /* ---------- 主体 ---------- */
 
@@ -211,7 +211,7 @@ function KindTabs({ value, onChange, tally }: {
             aria-pressed={on}
             className={cn(
               'relative flex min-h-10 items-center justify-center gap-2 rounded-2xl px-3 text-[13px] transition-colors duration-200 lg:justify-start',
-              on ? 'text-white' : 'text-white/50 hover:bg-white/[0.04] hover:text-white/80',
+              on ? 'text-slate-900' : 'text-slate-900/50 hover:bg-slate-900/4 hover:text-slate-900/80',
             )}
           >
             {on && (
@@ -222,9 +222,9 @@ function KindTabs({ value, onChange, tally }: {
                 transition={{ type: 'spring', stiffness: 420, damping: 36 }}
               />
             )}
-            <Icon size={14} className={cn('relative shrink-0', on && 'text-sky-200')} />
+            <Icon size={14} className={cn('relative shrink-0', on && 'text-sky-600')} />
             <span className="relative lg:flex-1 lg:text-left">{label}</span>
-            <span className={cn('num relative text-[11px]', on ? 'text-indigo-100/80' : 'text-white/30')}>{tally[key]}</span>
+            <span className={cn('num relative text-[11px]', on ? 'text-slate-700' : 'text-slate-900/40')}>{tally[key]}</span>
           </button>
         )
       })}
@@ -335,7 +335,7 @@ function Row({
           <GripVertical
             size={13}
             aria-hidden
-            className={cn('hidden shrink-0 text-white/15 transition-colors md:block', draggable ? 'cursor-grab group-hover:text-indigo-200/60' : 'opacity-0')}
+            className={cn('hidden shrink-0 text-slate-900/40 transition-colors md:block', draggable ? 'cursor-grab group-hover:text-indigo-500' : 'opacity-0')}
           />
         </div>
       </Td>
@@ -360,23 +360,23 @@ function Row({
             <button
               onClick={() => setEditing(true)}
               title="重命名"
-              className="group/name flex min-h-9 min-w-0 items-center gap-1.5 text-left text-white/90 hover:text-white"
+              className="group/name flex min-h-9 min-w-0 items-center gap-1.5 text-left text-slate-900/90 hover:text-slate-900"
             >
               <span className="truncate">{row.name}</span>
-              <Pencil size={11} className="shrink-0 text-white/20 transition-colors group-hover/name:text-indigo-200/70 md:text-white/0" />
+              <Pencil size={11} className="shrink-0 text-slate-900/40 transition-colors group-hover/name:text-indigo-500 md:text-slate-900/40" />
             </button>
           )}
         </div>
       </Td>
 
       <Td className="hidden sm:table-cell">
-        <span className="num text-[12.5px] text-white/38">{row.slug}</span>
+        <span className="num text-[12.5px] text-slate-900/40">{row.slug}</span>
       </Td>
 
       <Td className="text-right">
         {row.count === null
-          ? <span className="text-white/22">—</span>
-          : <span className={cn('num', row.count ? 'text-white/80' : 'text-white/30')}>{row.count}</span>}
+          ? <span className="text-slate-900/40">—</span>
+          : <span className={cn('num', row.count ? 'text-slate-900/80' : 'text-slate-900/40')}>{row.count}</span>}
       </Td>
 
       <Td className="text-right" onClick={(e) => e.stopPropagation()}>
@@ -430,7 +430,7 @@ function ArmButton({ idle, armed, onConfirm, compact }: {
             onClick={(e) => { e.stopPropagation(); setOn(true) }}
             className={cn(
               'btn btn-danger',
-              compact ? cn(ICON_BTN, 'text-white/40 opacity-70 group-hover:opacity-100') : 'btn-sm h-9 w-9 p-0',
+              compact ? cn(ICON_BTN, 'text-slate-900/40 opacity-70 group-hover:opacity-100') : 'btn-sm h-9 w-9 p-0',
             )}
             aria-label="删除"
             title="删除"
@@ -488,7 +488,7 @@ function ColorPick({ value, onPick }: { value: string | null; onPick: (c: string
     timer.current = setTimeout(() => { if (c !== value) onPick(c) }, 380)
   }
 
-  const c = value || 'rgb(255 255 255 / 0.25)'
+  const c = value || 'rgb(100 116 139 / 0.35)'
 
   return (
     <>
@@ -498,7 +498,7 @@ function ColorPick({ value, onPick }: { value: string | null; onPick: (c: string
         onClick={toggle}
         aria-label="颜色"
         title="颜色"
-        className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors hover:bg-white/[0.07]"
+        className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors hover:bg-slate-900/7"
       >
         <span className="h-2.5 w-2.5 rounded-full" style={{ background: c, boxShadow: value ? `0 0 10px ${value}` : undefined }} />
       </button>
@@ -524,7 +524,7 @@ function ColorPick({ value, onPick }: { value: string | null; onPick: (c: string
                       onClick={() => pick(p)}
                       className={cn(
                         'flex h-8 items-center justify-center rounded-lg border transition-all duration-200 hover:scale-105',
-                        value?.toLowerCase() === p ? 'border-white/40 bg-white/[0.08]' : 'border-transparent hover:bg-white/[0.06]',
+                        value?.toLowerCase() === p ? 'border-slate-900/14 bg-slate-900/8' : 'border-transparent hover:bg-slate-900/6',
                       )}
                       aria-label={p}
                     >
@@ -532,8 +532,8 @@ function ColorPick({ value, onPick }: { value: string | null; onPick: (c: string
                     </button>
                   ))}
                 </div>
-                <label className="mt-2 flex cursor-pointer items-center gap-2 rounded-lg border border-white/[0.07] px-2 py-1.5 text-[12px] text-white/55 transition-colors hover:border-white/20 hover:text-white/85">
-                  <span className="relative h-4 w-4 overflow-hidden rounded-md border border-white/20" style={{ background: custom }}>
+                <label className="mt-2 flex cursor-pointer items-center gap-2 rounded-lg border border-slate-900/7 px-2 py-1.5 text-[12px] text-slate-900/55 transition-colors hover:border-slate-900/14 hover:text-slate-900/85">
+                  <span className="relative h-4 w-4 overflow-hidden rounded-md border border-slate-900/14" style={{ background: custom }}>
                     <input
                       type="color"
                       value={custom}

@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m as motion, AnimatePresence } from 'framer-motion'
 import {
   UploadCloud, File as FileIcon, ImageIcon, FileArchive, FileText, Film, Music, Code2, Table2,
   Link2, Download, Trash2, Infinity as InfinityIcon, Lock, Pause, Play, X, Check, Plus,
@@ -60,15 +60,15 @@ const KINDS: { key: KindFilter; label: string; icon: React.ReactNode }[] = [
 ]
 
 const ICONS: Record<string, { icon: React.ElementType; cls: string }> = {
-  image: { icon: ImageIcon, cls: 'text-purple-300' },
-  pdf: { icon: FileText, cls: 'text-rose-300' },
-  doc: { icon: FileText, cls: 'text-sky-300' },
-  sheet: { icon: Table2, cls: 'text-emerald-300' },
-  archive: { icon: FileArchive, cls: 'text-amber-300' },
-  code: { icon: Code2, cls: 'text-indigo-300' },
+  image: { icon: ImageIcon, cls: 'text-violet-600' },
+  pdf: { icon: FileText, cls: 'text-rose-600' },
+  doc: { icon: FileText, cls: 'text-sky-600' },
+  sheet: { icon: Table2, cls: 'text-emerald-600' },
+  archive: { icon: FileArchive, cls: 'text-amber-700' },
+  code: { icon: Code2, cls: 'text-indigo-500' },
   video: { icon: Film, cls: 'text-blue-300' },
-  audio: { icon: Music, cls: 'text-violet-300' },
-  other: { icon: FileIcon, cls: 'text-white/45' },
+  audio: { icon: Music, cls: 'text-violet-600' },
+  other: { icon: FileIcon, cls: 'text-slate-900/45' },
 }
 
 const kindGroup = (k: string): KindFilter =>
@@ -380,7 +380,7 @@ export function FilesAdmin({ files, used, disk, now: serverNow, autoPick }: {
               className="mx-auto max-h-[70vh] rounded-2xl object-contain"
             />
             <div className="flex items-center justify-center gap-2">
-              <p className="min-w-0 truncate text-[12.5px] text-white/50">{preview.name}</p>
+              <p className="min-w-0 truncate text-[12.5px] text-slate-900/50">{preview.name}</p>
               <a href={fileUrl(preview)} className={ICON_BTN} aria-label="下载" title="下载">
                 <Download size={14} />
               </a>
@@ -409,9 +409,9 @@ function StorageCard({ used, disk, stats, onPurge }: {
 }) {
   const sum = stats.mine.b + stats.guest.b + stats.expired.b || 1
   const segs = [
-    { key: 'mine', label: '永久', icon: InfinityIcon, cls: 'from-sky-300 to-indigo-400', dot: 'text-sky-300', ...stats.mine },
-    { key: 'guest', label: '临时', icon: Hourglass, cls: 'from-indigo-400 to-purple-400', dot: 'text-violet-300', ...stats.guest },
-    { key: 'expired', label: '已过期', icon: TimerOff, cls: 'from-rose-400 to-rose-500', dot: 'text-rose-300', ...stats.expired },
+    { key: 'mine', label: '永久', icon: InfinityIcon, cls: 'from-sky-300 to-indigo-400', dot: 'text-sky-600', ...stats.mine },
+    { key: 'guest', label: '临时', icon: Hourglass, cls: 'from-indigo-400 to-purple-400', dot: 'text-violet-600', ...stats.guest },
+    { key: 'expired', label: '已过期', icon: TimerOff, cls: 'from-rose-400 to-rose-500', dot: 'text-rose-600', ...stats.expired },
   ]
   const diskPct = disk && disk.total ? Math.round(((disk.total - disk.free) / disk.total) * 100) : null
 
@@ -422,15 +422,15 @@ function StorageCard({ used, disk, stats, onPurge }: {
 
       <div className="relative flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] text-indigo-200/80" title="存储">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-900/10 bg-slate-900/5 text-indigo-500" title="存储">
             <HardDrive size={17} />
           </span>
           <div>
             <p className="num text-grad text-[28px] font-semibold leading-none tracking-tight">{formatBytes(used)}</p>
             {disk && (
-              <p className="num mt-1.5 text-[11.5px] text-white/35" title="磁盘剩余">
-                <span className="text-white/60">{formatBytes(disk.free)}</span> / {formatBytes(disk.total)}
-                {diskPct !== null && <span className="ml-1.5 text-white/25">· {diskPct}%</span>}
+              <p className="num mt-1.5 text-[11.5px] text-slate-900/40" title="磁盘剩余">
+                <span className="text-slate-900/60">{formatBytes(disk.free)}</span> / {formatBytes(disk.total)}
+                {diskPct !== null && <span className="ml-1.5 text-slate-900/40">· {diskPct}%</span>}
               </p>
             )}
           </div>
@@ -446,7 +446,7 @@ function StorageCard({ used, disk, stats, onPurge }: {
         </button>
       </div>
 
-      <div className="relative mt-5 flex h-2 gap-[2px] overflow-hidden rounded-full bg-white/[0.06]">
+      <div className="relative mt-5 flex h-2 gap-[2px] overflow-hidden rounded-full bg-slate-900/6">
         {segs.map((s, i) => (
           <motion.div
             key={s.key}
@@ -460,10 +460,10 @@ function StorageCard({ used, disk, stats, onPurge }: {
 
       <div className="relative mt-3.5 flex flex-wrap gap-x-5 gap-y-1.5 text-[11.5px]">
         {segs.map((s) => (
-          <span key={s.key} className="flex items-center gap-1.5 text-white/45" title={s.label}>
+          <span key={s.key} className="flex items-center gap-1.5 text-slate-900/45" title={s.label}>
             <s.icon size={12} className={s.dot} aria-label={s.label} />
-            <span className="num text-white/80">{s.n}</span>
-            <span className="num text-white/30">{formatBytes(s.b)}</span>
+            <span className="num text-slate-900/80">{s.n}</span>
+            <span className="num text-slate-900/40">{formatBytes(s.b)}</span>
           </span>
         ))}
       </div>
@@ -492,11 +492,11 @@ function DropZone({ onPick, active }: { onPick: () => void; active: boolean }) {
         animate={active ? { scale: 1.12, y: -3 } : { scale: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 380, damping: 22 }}
         className={cn(
-          'relative flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] transition-colors',
+          'relative flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-900/10 bg-slate-900/5 transition-colors',
           active ? 'pulse-ring border-indigo-300/50' : 'group-hover:border-indigo-300/35',
         )}
       >
-        <UploadCloud size={24} className={cn('text-indigo-100/60 transition-colors group-hover:text-white', active && 'text-sky-200')} />
+        <UploadCloud size={24} className={cn('text-slate-600 transition-colors group-hover:text-slate-900', active && 'text-sky-600')} />
       </motion.span>
     </motion.button>
   )
@@ -549,7 +549,7 @@ function DragOverlay({ on }: { on: boolean }) {
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           transition={{ duration: 0.22, ease: EASE }}
-          className="pointer-events-none fixed inset-0 z-[55] flex items-center justify-center bg-[#060818]/70 backdrop-blur-md"
+          className="pointer-events-none fixed inset-0 z-[55] flex items-center justify-center bg-slate-900/[0.04] backdrop-blur-md"
         >
           <motion.div
             initial={{ scale: 0.9, y: 10 }} animate={{ scale: 1, y: 0 }}
@@ -557,8 +557,8 @@ function DragOverlay({ on }: { on: boolean }) {
             className="liquid-strong grad-border flex h-40 w-40 items-center justify-center rounded-[2rem]"
             data-active="true"
           >
-            <span className="pulse-ring flex h-16 w-16 items-center justify-center rounded-2xl bg-white/[0.05]">
-              <ArrowDown size={30} className="text-sky-200" />
+            <span className="pulse-ring flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-900/5">
+              <ArrowDown size={30} className="text-sky-600" />
             </span>
           </motion.div>
         </motion.div>
@@ -589,7 +589,7 @@ function UploadQueue({ tasks, onPause, onResume, onCancel }: {
           transition={{ duration: 0.32, ease: EASE }}
           className="overflow-hidden"
         >
-          <div className="liquid mb-4 divide-y divide-white/[0.05] rounded-3xl px-1.5 py-1">
+          <div className="liquid mb-4 divide-y divide-slate-900/5 rounded-3xl px-1.5 py-1">
             <AnimatePresence initial={false}>
               {tasks.map((t) => {
                 const done = t.state === 'done'
@@ -606,16 +606,16 @@ function UploadQueue({ tasks, onPause, onResume, onCancel }: {
                   >
                     <span className={cn(
                       'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg',
-                      done ? 'bg-emerald-400/15 text-emerald-300' : err ? 'bg-rose-400/15 text-rose-300' : 'bg-indigo-400/10 text-indigo-200/70',
+                      done ? 'bg-emerald-400/15 text-emerald-600' : err ? 'bg-rose-400/15 text-rose-600' : 'bg-indigo-400/10 text-indigo-500',
                     )}>
                       {done ? <Check size={13} /> : err ? <X size={13} /> : t.state === 'paused' ? <Pause size={12} /> : <Loader2 size={13} className="animate-spin" />}
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-[12.5px] text-white/75">{t.file.name}</span>
-                    <span className={cn('hidden shrink-0 items-center gap-1 text-[11px] sm:flex', err ? 'text-rose-300' : 'text-white/35')}>
-                      {err ? t.error : t.instant && done ? <Zap size={11} className="text-amber-300" aria-label="秒传" /> : TASK_TEXT[t.state]}
+                    <span className="min-w-0 flex-1 truncate text-[12.5px] text-slate-900/75">{t.file.name}</span>
+                    <span className={cn('hidden shrink-0 items-center gap-1 text-[11px] sm:flex', err ? 'text-rose-600' : 'text-slate-900/40')}>
+                      {err ? t.error : t.instant && done ? <Zap size={11} className="text-amber-700" aria-label="秒传" /> : TASK_TEXT[t.state]}
                       {t.state === 'uploading' && t.speed > 0 && <span className="num">{formatBytes(t.speed)}/s</span>}
                     </span>
-                    <span className="num w-10 shrink-0 text-right text-[11px] text-white/55">{Math.round(t.progress)}%</span>
+                    <span className="num w-10 shrink-0 text-right text-[11px] text-slate-900/55">{Math.round(t.progress)}%</span>
                     <span className="flex shrink-0 justify-end gap-0.5">
                       {t.state === 'uploading' && (
                         <button onClick={() => onPause(t.id)} className={ICON_BTN} aria-label="暂停" title="暂停"><Pause size={12} /></button>
@@ -628,7 +628,7 @@ function UploadQueue({ tasks, onPause, onResume, onCancel }: {
                       )}
                     </span>
                     {!done && !err && (
-                      <div className="absolute inset-x-2.5 bottom-0 h-[2px] overflow-hidden rounded-full bg-white/[0.05]">
+                      <div className="absolute inset-x-2.5 bottom-0 h-[2px] overflow-hidden rounded-full bg-slate-900/5">
                         <motion.div
                           className="h-full rounded-full bg-gradient-to-r from-sky-300 via-indigo-400 to-purple-400"
                           animate={{ width: `${t.progress}%` }}
@@ -656,7 +656,7 @@ function Segmented<T extends string>({ id, value, onChange, items }: {
   items: { key: T; label: string; icon?: React.ReactNode; badge?: number; danger?: boolean }[]
 }) {
   return (
-    <div className="flex max-w-full shrink-0 items-center gap-0.5 overflow-x-auto rounded-2xl border border-white/[0.07] bg-white/[0.025] p-0.5 [scrollbar-width:none]">
+    <div className="flex max-w-full shrink-0 items-center gap-0.5 overflow-x-auto rounded-2xl border border-slate-900/7 bg-slate-900/2 p-0.5 [scrollbar-width:none]">
       {items.map((it) => {
         const active = it.key === value
         return (
@@ -669,7 +669,7 @@ function Segmented<T extends string>({ id, value, onChange, items }: {
             className={cn(
               'relative flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-[14px] text-[12.5px] transition-colors duration-200',
               it.icon ? 'w-9' : 'px-3',
-              active ? 'text-white' : 'text-white/45 hover:text-white/80',
+              active ? 'text-slate-900' : 'text-slate-900/45 hover:text-slate-900/80',
             )}
           >
             {active && (
@@ -683,7 +683,7 @@ function Segmented<T extends string>({ id, value, onChange, items }: {
             <span className="relative flex items-center gap-1.5">
               {it.icon ?? it.label}
               {it.badge !== undefined && (
-                <span className={cn('num text-[10.5px]', it.danger ? 'text-rose-300' : 'opacity-45')}>{it.badge}</span>
+                <span className={cn('num text-[10.5px]', it.danger ? 'text-rose-600' : 'opacity-45')}>{it.badge}</span>
               )}
             </span>
           </button>
@@ -709,7 +709,7 @@ function SortTh({ k, sort, onSort, className, label, children }: {
         onClick={() => onSort(k)}
         title={label}
         aria-label={label}
-        className={cn('label inline-flex items-center gap-1 hover:text-white/80', active && 'text-indigo-100/85')}
+        className={cn('label inline-flex items-center gap-1 hover:text-slate-900/80', active && 'text-slate-700')}
       >
         {children}
         <Arrow size={10} className={cn('transition-opacity', active ? 'opacity-80' : 'opacity-0')} />
@@ -746,13 +746,13 @@ function FileTr({ file: f, now, selected, pending, onToggle, onRename, onPreview
           <div className="min-w-0 flex-1">
             <NameCell name={f.name} onSave={onRename} />
             <div className="mt-0.5 flex flex-wrap items-center gap-x-2 sm:hidden">
-              <span className="num text-[11px] text-white/30">{formatBytes(f.size)}</span>
+              <span className="num text-[11px] text-slate-900/40">{formatBytes(f.size)}</span>
               <Owner file={f} now={now} expired={expired} />
               {f.shareCode && (
                 <button
                   type="button"
                   onClick={onCopy}
-                  className="inline-flex min-h-8 items-center gap-0.5 font-mono text-[11px] text-indigo-200/70"
+                  className="inline-flex min-h-8 items-center gap-0.5 font-mono text-[11px] text-indigo-500"
                   aria-label="复制链接"
                 >
                   <Link2 size={10} />{f.shareCode}
@@ -763,7 +763,7 @@ function FileTr({ file: f, now, selected, pending, onToggle, onRename, onPreview
           {f.refs > 0 && (
             <span
               title="引用"
-              className="num inline-flex shrink-0 items-center gap-1 rounded-md border border-indigo-400/25 bg-indigo-400/10 px-1.5 py-0.5 text-[10.5px] text-indigo-200"
+              className="num inline-flex shrink-0 items-center gap-1 rounded-md border border-indigo-400/25 bg-indigo-400/10 px-1.5 py-0.5 text-[10.5px] text-indigo-500"
             >
               <Paperclip size={10} /> {f.refs}
             </span>
@@ -771,24 +771,24 @@ function FileTr({ file: f, now, selected, pending, onToggle, onRename, onPreview
         </div>
       </Td>
 
-      <Td className="num hidden whitespace-nowrap text-white/60 sm:table-cell">{formatBytes(f.size)}</Td>
+      <Td className="num hidden whitespace-nowrap text-slate-900/60 sm:table-cell">{formatBytes(f.size)}</Td>
 
       <Td className="hidden whitespace-nowrap sm:table-cell">
         <Owner file={f} now={now} expired={expired} />
       </Td>
 
-      <Td className="num hidden text-white/60 md:table-cell">{f.downloads}</Td>
+      <Td className="num hidden text-slate-900/60 md:table-cell">{f.downloads}</Td>
 
       <Td className="hidden whitespace-nowrap lg:table-cell">
         {f.shareCode ? (
-          <span className="inline-flex items-center gap-1 font-mono text-[12px] text-white/55">
+          <span className="inline-flex items-center gap-1 font-mono text-[12px] text-slate-900/55">
             {f.shareCode}
-            {f.locked && <Lock size={10} className="text-amber-300/70" aria-label="加密" />}
+            {f.locked && <Lock size={10} className="text-amber-700" aria-label="加密" />}
           </span>
-        ) : <span className="text-white/20">—</span>}
+        ) : <span className="text-slate-900/40">—</span>}
       </Td>
 
-      <Td className="num hidden whitespace-nowrap text-[12.5px] text-white/45 md:table-cell">
+      <Td className="num hidden whitespace-nowrap text-[12.5px] text-slate-900/45 md:table-cell">
         <span suppressHydrationWarning>{fmtTime(f.createdAt, now)}</span>
       </Td>
 
@@ -805,7 +805,7 @@ function FileTr({ file: f, now, selected, pending, onToggle, onRename, onPreview
             </a>
           )}
           {f.expiresAt !== null && (
-            <IconBtn label="设为永久" onClick={onKeep} disabled={pending} className="hover:text-sky-200">
+            <IconBtn label="设为永久" onClick={onKeep} disabled={pending} className="hover:text-sky-600">
               <InfinityIcon size={14} />
             </IconBtn>
           )}
@@ -849,7 +849,7 @@ function Thumb({ file: f, expired, onPreview }: { file: AdminFile; expired: bool
       tabIndex={img ? 0 : undefined}
       aria-label={img ? '预览' : undefined}
       className={cn(
-        'relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.04] transition-transform duration-300',
+        'relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-900/8 bg-slate-900/4 transition-transform duration-300',
         img && 'cursor-zoom-in hover:scale-105',
         expired && 'opacity-50',
       )}
@@ -913,7 +913,7 @@ function NameCell({ name, onSave }: { name: string; onSave: (name: string) => Pr
       type="button"
       onClick={() => { setDraft(shown); setEditing(true) }}
       title={shown}
-      className="block max-w-full truncate rounded-md text-left text-[13.5px] text-white/85 decoration-indigo-300/40 underline-offset-4 hover:underline"
+      className="block max-w-full truncate rounded-md text-left text-[13.5px] text-slate-900/85 decoration-indigo-300/40 underline-offset-4 hover:underline"
     >
       {shown}
     </button>
@@ -926,16 +926,16 @@ function Owner({ file: f, now, expired }: { file: AdminFile; now: number; expire
     <span className="inline-flex items-center gap-2">
       <span className={cn(
         'rounded-md border px-1.5 py-0.5 text-[11px]',
-        guest ? 'border-amber-400/25 bg-amber-400/10 text-amber-200/90' : 'border-sky-400/25 bg-sky-400/10 text-sky-200',
+        guest ? 'border-amber-400/25 bg-amber-400/10 text-amber-700' : 'border-sky-400/25 bg-sky-400/10 text-sky-600',
       )}>
         {guest ? '访客' : '我'}
       </span>
       {expired ? (
-        <span title="已过期" className="inline-flex text-rose-300"><TimerOff size={12} aria-label="已过期" /></span>
+        <span title="已过期" className="inline-flex text-rose-600"><TimerOff size={12} aria-label="已过期" /></span>
       ) : f.expiresAt !== null ? (
         <span
           title="剩余"
-          className={cn('num inline-flex items-center gap-1 text-[11.5px]', f.expiresAt - now < 6 * 3600000 ? 'text-amber-200/80' : 'text-white/40')}
+          className={cn('num inline-flex items-center gap-1 text-[11.5px]', f.expiresAt - now < 6 * 3600000 ? 'text-amber-700' : 'text-slate-900/40')}
         >
           <Hourglass size={10} /> {left(f.expiresAt - now)}
         </span>
@@ -963,23 +963,23 @@ function ConfirmModal({ ask, byId, expired, pending, onClose, onDelete, onPurge 
   return (
     <Modal open={!!ask} onClose={onClose} className="max-w-sm">
       <div className="flex flex-col items-center gap-3 text-center">
-        <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-rose-400/25 bg-rose-500/10 text-rose-300">
+        <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-rose-400/25 bg-rose-500/10 text-rose-600">
           {purge ? <Eraser size={20} /> : <Trash2 size={20} />}
         </span>
-        <p className="text-[15px] font-medium text-white/90">{purge ? '清理？' : '删除？'}</p>
+        <p className="text-[15px] font-medium text-slate-900/90">{purge ? '清理？' : '删除？'}</p>
 
         {purge ? (
-          <p className="num text-[13px] text-white/55">
+          <p className="num text-[13px] text-slate-900/55">
             {expired.n ? <>{expired.n} · {formatBytes(expired.b)}</> : '∅'}
           </p>
         ) : del.length === 1 ? (
-          <p className="max-w-full truncate text-[13px] text-white/60">{del[0].name}</p>
+          <p className="max-w-full truncate text-[13px] text-slate-900/60">{del[0].name}</p>
         ) : (
-          <p className="num text-[13px] text-white/55">{del.length} · {formatBytes(bytes)}</p>
+          <p className="num text-[13px] text-slate-900/55">{del.length} · {formatBytes(bytes)}</p>
         )}
 
         {!purge && refs > 0 && (
-          <p className="num flex items-center gap-1.5 text-[12.5px] text-rose-300" title="引用">
+          <p className="num flex items-center gap-1.5 text-[12.5px] text-rose-600" title="引用">
             <Paperclip size={12} /> {refs}
           </p>
         )}

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { isAuthed, getSetting } from '@/lib/auth'
+import { isAuthed, getSetting, ensureInit } from '@/lib/auth'
 import { Sidebar } from '@/components/admin/sidebar'
 import { Toaster } from '@/components/admin/ui'
 
@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic'
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // middleware 已拦截，这里是双保险
   if (!(await isAuthed())) redirect('/login?next=/admin')
+  await ensureInit()
   const title = (await getSetting('site_title')) ?? 'Foliage'
 
   return (

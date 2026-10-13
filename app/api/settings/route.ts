@@ -3,7 +3,7 @@ import { getSetting, isAuthed, setSetting, verifyPassword, hashPassword } from '
 
 export const runtime = 'nodejs'
 
-const PUBLIC_KEYS = ['site_title', 'site_subtitle', 'hero_line', 'footer_note']
+const PUBLIC_KEYS = ['site_title', 'site_subtitle', 'hero_line', 'footer_note', 'announcement']
 const MAX_LEN = 300
 
 export async function POST(req: NextRequest) {

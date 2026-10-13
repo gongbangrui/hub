@@ -10,9 +10,19 @@ const DB_PATH = path.join(DATA_DIR, 'app.db')
 fs.mkdirSync(path.join(DATA_DIR, 'uploads'), { recursive: true })
 fs.mkdirSync(path.join(DATA_DIR, 'chunks'), { recursive: true })
 
-const sqlite = new Database(DB_PATH)
-sqlite.pragma('journal_mode = WAL')
-sqlite.pragma('foreign_keys = ON')
+const g = globalThis as unknown as { __sqlite?: Database.Database }
+
+function open() {
+  const conn = new Database(DB_PATH)
+  conn.pragma('journal_mode = WAL')
+  conn.pragma('synchronous = NORMAL')
+  conn.pragma('busy_timeout = 5000')
+  conn.pragma('foreign_keys = ON')
+  return conn
+}
+
+// dev 热更新会反复执行本模块，缓存在 globalThis 上避免泄漏连接
+const sqlite = g.__sqlite ?? (g.__sqlite = open())
 
 sqlite.exec(`
 CREATE TABLE IF NOT EXISTS categories (
@@ -27,7 +37,7 @@ CREATE TABLE IF NOT EXISTS files (
   id INTEGER PRIMARY KEY AUTOINCREMENT, token TEXT NOT NULL UNIQUE, original_name TEXT NOT NULL,
   stored_path TEXT NOT NULL, mime TEXT NOT NULL DEFAULT 'application/octet-stream', size INTEGER NOT NULL DEFAULT 0,
   sha256 TEXT NOT NULL, owner TEXT NOT NULL DEFAULT 'guest', share_code TEXT UNIQUE, share_password TEXT,
-  delete_key TEXT, downloads INTEGER NOT NULL DEFAULT 0, expires_at INTEGER, created_at INTEGER NOT NULL);
+  delete_key TEXT, uploader_id TEXT, width INTEGER, height INTEGER, downloads INTEGER NOT NULL DEFAULT 0, expires_at INTEGER, created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS competitions (
   id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, level TEXT, category_id INTEGER,
   date_start TEXT, date_end TEXT, result TEXT, team TEXT, description TEXT,
@@ -44,6 +54,19 @@ CREATE INDEX IF NOT EXISTS idx_files_expires ON files(expires_at);
 CREATE INDEX IF NOT EXISTS idx_files_share ON files(share_code);
 CREATE INDEX IF NOT EXISTS idx_files_sha ON files(sha256);
 CREATE INDEX IF NOT EXISTS idx_attachments_owner ON attachments(owner_type, owner_id);
+`)
+
+// 没有迁移体系：旧库的 files 表缺列时就地补上，必须在建索引之前
+const fileCols = sqlite.prepare('PRAGMA table_info(files)').all() as { name: string }[]
+if (!fileCols.some((c) => c.name === 'uploader_id')) {
+  sqlite.exec('ALTER TABLE files ADD COLUMN uploader_id TEXT')
+}
+for (const col of ['width', 'height']) {
+  if (!fileCols.some((c) => c.name === col)) sqlite.exec(`ALTER TABLE files ADD COLUMN ${col} INTEGER`)
+}
+sqlite.exec(`
+CREATE INDEX IF NOT EXISTS idx_files_uploader ON files(uploader_id);
+CREATE INDEX IF NOT EXISTS idx_files_created ON files(created_at);
 `)
 
 export const db = drizzle(sqlite, { schema })

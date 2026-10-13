@@ -38,6 +38,11 @@ export const files = sqliteTable('files', {
   shareCode: text('share_code').unique(),
   sharePassword: text('share_password'),
   deleteKey: text('delete_key'),
+  /** 上传者的访客标识（签名 cookie hub_vid 里的 id）；管理员上传为空 */
+  uploaderId: text('uploader_id'),
+  /** 图片像素尺寸（上传时读取），瀑布流据此预留高度，避免加载后跳动 */
+  width: integer('width'),
+  height: integer('height'),
   downloads: integer('downloads').notNull().default(0),
   expiresAt: integer('expires_at', { mode: 'timestamp' }),
   createdAt: now(),

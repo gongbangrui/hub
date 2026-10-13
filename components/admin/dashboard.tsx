@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import { m as motion } from 'framer-motion'
 import {
   Bookmark, FolderOpen, Trophy, FileText, Clock, Plus, Upload, Trash2, HardDrive, Flame, ArrowUpRight,
   Activity as ActivityIcon, BarChart3, Timer, MousePointerClick, Award, CheckCheck, Loader2, Ban, Hourglass,
@@ -35,10 +35,10 @@ export type DashboardData = {
 }
 
 const KIND = {
-  link: { label: '书签', href: '/admin/links', icon: Bookmark, cls: 'text-sky-200 bg-sky-400/12 border-sky-300/30', dot: '#7dd3fc' },
-  file: { label: '文件', href: '/admin/files', icon: FolderOpen, cls: 'text-indigo-200 bg-indigo-400/12 border-indigo-300/30', dot: '#818cf8' },
-  competition: { label: '竞赛', href: '/admin/competitions', icon: Trophy, cls: 'text-violet-200 bg-violet-400/12 border-violet-300/30', dot: '#a78bfa' },
-  paper: { label: '论文', href: '/admin/papers', icon: FileText, cls: 'text-purple-200 bg-purple-400/12 border-purple-300/30', dot: '#c084fc' },
+  link: { label: '书签', href: '/admin/links', icon: Bookmark, cls: 'text-sky-600 bg-sky-400/12 border-sky-300/30', dot: '#7dd3fc' },
+  file: { label: '文件', href: '/admin/files', icon: FolderOpen, cls: 'text-indigo-500 bg-indigo-400/12 border-indigo-300/30', dot: '#818cf8' },
+  competition: { label: '竞赛', href: '/admin/competitions', icon: Trophy, cls: 'text-violet-600 bg-violet-400/12 border-violet-300/30', dot: '#a78bfa' },
+  paper: { label: '论文', href: '/admin/papers', icon: FileText, cls: 'text-violet-600 bg-purple-400/12 border-purple-300/30', dot: '#c084fc' },
 } as const
 
 /** 分布条：浅蓝 → 紫 渐进 */
@@ -83,9 +83,9 @@ function Panel({ title, icon, extra, className, children }: {
   return (
     <FadeItem className={cn('liquid spotlight relative overflow-hidden rounded-3xl p-4 sm:p-5', className)}>
       <header className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2.5 text-[14px] font-medium text-white/85">
+        <h2 className="flex items-center gap-2.5 text-[14px] font-medium text-slate-900/85">
           {icon && (
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-indigo-200/15 bg-[image:var(--grad-soft)] text-indigo-100">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-indigo-300/30 bg-[image:var(--grad-soft)] text-slate-700">
               {icon}
             </span>
           )}
@@ -100,7 +100,7 @@ function Panel({ title, icon, extra, className, children }: {
 
 function Empty({ icon }: { icon?: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-center py-8 text-indigo-200/25" aria-label="空">
+    <div className="flex items-center justify-center py-8 text-indigo-400" aria-label="空">
       {icon ?? <span className="text-2xl">∅</span>}
     </div>
   )
@@ -139,7 +139,7 @@ function QuickActions() {
           >
             <q.icon size={16} />
             {q.icon !== Upload && (
-              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[image:var(--grad)] text-[#060818] shadow-[0_0_8px_rgb(129_140_248/0.8)]">
+              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[image:var(--grad)] text-white shadow-[0_0_8px_rgb(129_140_248/0.8)]">
                 <Plus size={10} strokeWidth={3.5} />
               </span>
             )}
@@ -168,7 +168,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
           <StatCard
             label="书签" value={data.links.count} tone="sky" href="/admin/links"
             icon={<Bookmark size={15} />}
-            hint={<span className="inline-flex items-center gap-1" title="点击"><MousePointerClick size={12} /><span className="num text-white/65">{data.links.clicks}</span></span>}
+            hint={<span className="inline-flex items-center gap-1" title="点击"><MousePointerClick size={12} /><span className="num text-slate-900/65">{data.links.clicks}</span></span>}
           />
         </FadeItem>
         <FadeItem className="lg:col-span-4">
@@ -177,9 +177,9 @@ export function Dashboard({ data }: { data: DashboardData }) {
             icon={<FolderOpen size={15} />}
             hint={
               <>
-                <span className="num text-white/65">{formatBytes(data.files.bytes)}</span>
-                <span className="text-white/20">·</span>
-                <span className="inline-flex items-center gap-1" title="临时"><Timer size={12} /><span className="num text-white/65">{data.temp.count}</span></span>
+                <span className="num text-slate-900/65">{formatBytes(data.files.bytes)}</span>
+                <span className="text-slate-900/40">·</span>
+                <span className="inline-flex items-center gap-1" title="临时"><Timer size={12} /><span className="num text-slate-900/65">{data.temp.count}</span></span>
               </>
             }
           />
@@ -191,9 +191,9 @@ export function Dashboard({ data }: { data: DashboardData }) {
             hint={
               <span className="inline-flex items-center gap-1" title={`${LEVELS.national.label} · ${LEVELS.international.label}`}>
                 <Award size={12} />
-                <span className="num text-amber-200/90">{lv.national ?? 0}</span>
-                <span className="text-white/20">·</span>
-                <span className="num text-purple-200/90">{lv.international ?? 0}</span>
+                <span className="num text-amber-700">{lv.national ?? 0}</span>
+                <span className="text-slate-900/40">·</span>
+                <span className="num text-violet-600">{lv.international ?? 0}</span>
               </span>
             }
           />
@@ -204,7 +204,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
             icon={<FileText size={15} />}
             hint={
               <span className="inline-flex items-center gap-1" title={STATUSES.published.label}>
-                <CheckCheck size={12} /><span className="num text-white/65">{st.published ?? 0}</span>
+                <CheckCheck size={12} /><span className="num text-slate-900/65">{st.published ?? 0}</span>
               </span>
             }
           />
@@ -270,7 +270,7 @@ function Timeline({ items, now, className }: { items: Activity[]; now: number; c
               >
                 <Link
                   href={k.href}
-                  className="group relative flex min-h-[48px] items-center gap-3 rounded-2xl py-1.5 pr-2 transition-colors duration-200 hover:bg-white/[0.04]"
+                  className="group relative flex min-h-[48px] items-center gap-3 rounded-2xl py-1.5 pr-2 transition-colors duration-200 hover:bg-slate-900/4"
                 >
                   <span
                     className={cn('relative z-[1] flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border backdrop-blur transition-transform duration-300 group-hover:scale-110', k.cls)}
@@ -279,10 +279,10 @@ function Timeline({ items, now, className }: { items: Activity[]; now: number; c
                     <Icon size={15} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13.5px] text-white/85 group-hover:text-white">{a.title}</span>
-                    {a.sub && <span className="mt-0.5 block truncate text-[11.5px] text-indigo-100/40">{a.sub}</span>}
+                    <span className="block truncate text-[13.5px] text-slate-900/85 group-hover:text-slate-900">{a.title}</span>
+                    {a.sub && <span className="mt-0.5 block truncate text-[11.5px] text-slate-500">{a.sub}</span>}
                   </span>
-                  <span className="num shrink-0 rounded-full bg-white/[0.04] px-2 py-0.5 text-[11px] text-indigo-100/45">{ago(now, a.at)}</span>
+                  <span className="num shrink-0 rounded-full bg-slate-900/4 px-2 py-0.5 text-[11px] text-slate-500">{ago(now, a.at)}</span>
                 </Link>
               </motion.li>
             )
@@ -324,23 +324,23 @@ function Cleanup({ data, now, className }: { data: DashboardData; now: number; c
       }
     >
       <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.025] px-3 py-2.5" title="已过期">
-          <span className="flex items-center gap-1.5 text-[11px] text-indigo-100/40"><Ban size={12} />过期</span>
-          <span className={cn('mt-1 flex items-baseline gap-2 text-[26px] font-semibold leading-none tracking-tight', n > 0 ? 'text-rose-200' : 'text-white/90')}>
+        <div className="rounded-2xl border border-slate-900/6 bg-slate-900/2 px-3 py-2.5" title="已过期">
+          <span className="flex items-center gap-1.5 text-[11px] text-slate-500"><Ban size={12} />过期</span>
+          <span className={cn('mt-1 flex items-baseline gap-2 text-[26px] font-semibold leading-none tracking-tight', n > 0 ? 'text-rose-600' : 'text-slate-900/90')}>
             <Counter value={n} />
-            {n > 0 && <span className="num text-[11px] font-normal text-white/40">{formatBytes(data.expired.bytes)}</span>}
+            {n > 0 && <span className="num text-[11px] font-normal text-slate-900/40">{formatBytes(data.expired.bytes)}</span>}
           </span>
         </div>
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.025] px-3 py-2.5" title="24h 内到期">
-          <span className="flex items-center gap-1.5 text-[11px] text-indigo-100/40"><Hourglass size={12} />24h</span>
-          <span className="mt-1 block text-[26px] font-semibold leading-none tracking-tight text-white/90">
+        <div className="rounded-2xl border border-slate-900/6 bg-slate-900/2 px-3 py-2.5" title="24h 内到期">
+          <span className="flex items-center gap-1.5 text-[11px] text-slate-500"><Hourglass size={12} />24h</span>
+          <span className="mt-1 block text-[26px] font-semibold leading-none tracking-tight text-slate-900/90">
             <Counter value={data.expiring.length} />
           </span>
         </div>
       </div>
 
       {data.expiring.length > 0 && (
-        <ul className="mt-3 divide-y divide-white/[0.05]">
+        <ul className="mt-3 divide-y divide-slate-900/5">
           {data.expiring.map((f, i) => {
             const rest = f.expiresAt - now
             const hot = rest < 60 * 60 * 1000
@@ -348,13 +348,13 @@ function Cleanup({ data, now, className }: { data: DashboardData; now: number; c
             return (
               <li key={f.id} className="py-2">
                 <div className="flex items-center gap-3 text-[13px]">
-                  <span className="min-w-0 flex-1 truncate text-white/75" title={f.name}>{f.name}</span>
-                  <span className="num hidden shrink-0 text-[11.5px] text-white/35 sm:inline">{formatBytes(f.size)}</span>
-                  <span className={cn('num flex w-16 shrink-0 items-center justify-end gap-1 text-[12px]', hot ? 'text-rose-300' : warm ? 'text-amber-200' : 'text-white/55')}>
+                  <span className="min-w-0 flex-1 truncate text-slate-900/75" title={f.name}>{f.name}</span>
+                  <span className="num hidden shrink-0 text-[11.5px] text-slate-900/40 sm:inline">{formatBytes(f.size)}</span>
+                  <span className={cn('num flex w-16 shrink-0 items-center justify-end gap-1 text-[12px]', hot ? 'text-rose-600' : warm ? 'text-amber-700' : 'text-slate-900/55')}>
                     <Clock size={11} />{left(rest)}
                   </span>
                 </div>
-                <div className="mt-1.5 h-[3px] overflow-hidden rounded-full bg-white/[0.05]">
+                <div className="mt-1.5 h-[3px] overflow-hidden rounded-full bg-slate-900/5">
                   <Bar
                     pct={(rest / DAY) * 100}
                     delay={0.1 + i * 0.03}
@@ -389,13 +389,13 @@ function Storage({ storage, className }: { storage: DashboardData['storage']; cl
       <div className="pointer-events-none absolute -left-16 -top-16 h-48 w-48 rounded-full bg-sky-400/15 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-20 -right-10 h-48 w-48 rounded-full bg-purple-500/15 blur-3xl" />
       <header className="relative flex items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2.5 text-[14px] font-medium text-white/85">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-indigo-200/15 bg-[image:var(--grad-soft)] text-indigo-100">
+        <h2 className="flex items-center gap-2.5 text-[14px] font-medium text-slate-900/85">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-indigo-300/30 bg-[image:var(--grad-soft)] text-slate-700">
             <HardDrive size={15} />
           </span>
           存储
         </h2>
-        {total ? <span className="num rounded-full bg-white/[0.05] px-2 py-0.5 text-[11.5px] text-indigo-100/60">{pct(used + other).toFixed(1)}%</span> : null}
+        {total ? <span className="num rounded-full bg-slate-900/5 px-2 py-0.5 text-[11.5px] text-slate-600">{pct(used + other).toFixed(1)}%</span> : null}
       </header>
 
       <div className="relative flex flex-1 flex-col items-center justify-center gap-5 py-4 sm:flex-row lg:flex-col">
@@ -408,10 +408,10 @@ function Storage({ storage, className }: { storage: DashboardData['storage']; cl
                 <stop offset="100%" stopColor="#c084fc" />
               </linearGradient>
             </defs>
-            <circle cx="64" cy="64" r={R} fill="none" stroke="rgb(255 255 255 / 0.06)" strokeWidth="10" />
+            <circle cx="64" cy="64" r={R} fill="none" stroke="rgb(15 23 42 / 0.08)" strokeWidth="10" />
             {po > 0 && (
               <motion.circle
-                cx="64" cy="64" r={R} fill="none" stroke="rgb(255 255 255 / 0.16)" strokeWidth="10" strokeLinecap="round"
+                cx="64" cy="64" r={R} fill="none" stroke="rgb(15 23 42 / 0.18)" strokeWidth="10" strokeLinecap="round"
                 strokeDashoffset={-seg(pu)}
                 initial={{ strokeDasharray: `0 ${C}` }}
                 animate={{ strokeDasharray: `${seg(po)} ${C}` }}
@@ -429,15 +429,15 @@ function Storage({ storage, className }: { storage: DashboardData['storage']; cl
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="num text-grad text-[22px] font-semibold leading-none tracking-tight">{formatBytes(used)}</span>
-            {total ? <span className="num mt-1.5 text-[11px] text-indigo-100/40">/ {formatBytes(total)}</span> : null}
+            {total ? <span className="num mt-1.5 text-[11px] text-slate-500">/ {formatBytes(total)}</span> : null}
           </div>
         </div>
 
         {total ? (
-          <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-[11.5px] text-indigo-100/45 sm:flex-col lg:flex-row">
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-[11.5px] text-slate-500 sm:flex-col lg:flex-row">
             <Legend color="var(--grad)" label="↑" title="上传" value={formatBytes(used)} />
-            <Legend color="rgb(255 255 255 / 0.3)" label="◌" title="其他" value={formatBytes(other)} />
-            <Legend color="rgb(255 255 255 / 0.08)" label="○" title="可用" value={formatBytes(free ?? 0)} />
+            <Legend color="rgb(100 116 139 / 0.4)" label="◌" title="其他" value={formatBytes(other)} />
+            <Legend color="rgb(15 23 42 / 0.1)" label="○" title="可用" value={formatBytes(free ?? 0)} />
           </div>
         ) : null}
       </div>
@@ -450,7 +450,7 @@ function Legend({ color, label, value, title }: { color: string; label: string; 
     <span className="inline-flex items-center gap-1.5" title={title}>
       <span className="h-2 w-2 rounded-full" style={{ background: color }} />
       {label}
-      <span className="num text-white/70">{value}</span>
+      <span className="num text-slate-900/70">{value}</span>
     </span>
   )
 }
@@ -476,14 +476,14 @@ function TopLinks({ items, className }: { items: DashboardData['top']; className
         <ol className="space-y-3">
           {items.map((l, i) => (
             <li key={l.id} className="flex items-center gap-3">
-              <span className={cn('num w-4 shrink-0 text-right text-[11px]', i === 0 ? 'text-grad font-semibold' : 'text-white/25')}>{i + 1}</span>
+              <span className={cn('num w-4 shrink-0 text-right text-[11px]', i === 0 ? 'text-grad font-semibold' : 'text-slate-900/40')}>{i + 1}</span>
               <Favicon src={l.iconUrl || faviconOf(l.url)} seed={l.title} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-3">
-                  <a href={l.url} target="_blank" rel="noreferrer" className="truncate text-[13px] text-white/80 hover:text-white">{l.title}</a>
-                  <span className="num shrink-0 text-[12px] text-white/55">{l.clicks}</span>
+                  <a href={l.url} target="_blank" rel="noreferrer" className="truncate text-[13px] text-slate-900/80 hover:text-slate-900">{l.title}</a>
+                  <span className="num shrink-0 text-[12px] text-slate-900/55">{l.clicks}</span>
                 </div>
-                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
+                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-900/5">
                   <Bar
                     pct={(l.clicks / max) * 100}
                     delay={0.15 + i * 0.05}
@@ -501,8 +501,10 @@ function TopLinks({ items, className }: { items: DashboardData['top']; className
 
 function Favicon({ src, seed }: { src: string; seed: string }) {
   const [broken, setBroken] = useState(!src)
+  // 行是按 id 复用的：只靠初始化参数的话，一次加载失败后再拿到图标也一直是色块
+  useEffect(() => setBroken(!src), [src])
   return (
-    <span className={cn('flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br text-[11px] font-semibold text-white/90', broken ? toneOf(seed) : 'from-white/[0.06] to-white/[0.02]')}>
+    <span className={cn('flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-900/10 bg-gradient-to-br text-[11px] font-semibold text-slate-900/90', broken ? toneOf(seed) : 'from-white/[0.06] to-white/[0.02]')}>
       {broken
         ? seed.slice(0, 1).toUpperCase()
         // eslint-disable-next-line @next/next/no-img-element
@@ -521,12 +523,12 @@ function StackBar({ title, icon, href, segments }: {
   return (
     <div>
       <div className="mb-2.5 flex items-center justify-between">
-        <Link href={href} className="inline-flex min-h-[32px] items-center gap-1.5 text-[12.5px] text-indigo-100/55 transition-colors hover:text-white">
+        <Link href={href} className="inline-flex min-h-[32px] items-center gap-1.5 text-[12.5px] text-slate-600 transition-colors hover:text-slate-900">
           {icon}{title}<ArrowUpRight size={12} className="opacity-50" />
         </Link>
-        <span className="num text-xs text-white/45">{total}</span>
+        <span className="num text-xs text-slate-900/45">{total}</span>
       </div>
-      <div className="flex h-3 gap-[2px] overflow-hidden rounded-full bg-white/[0.05]">
+      <div className="flex h-3 gap-[2px] overflow-hidden rounded-full bg-slate-900/5">
         {shown.map((s, i) => (
           <motion.div
             key={s.key}
@@ -539,7 +541,7 @@ function StackBar({ title, icon, href, segments }: {
           />
         ))}
       </div>
-      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[11.5px] text-indigo-100/45">
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[11.5px] text-slate-500">
         {segments.filter((s) => s.n > 0 || s.key !== 'none').map((s) => (
           <Legend key={s.key} color={s.color} label={s.label} value={s.n} />
         ))}

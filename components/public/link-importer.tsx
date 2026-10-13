@@ -1,6 +1,7 @@
 'use client'
+import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m as motion, AnimatePresence } from 'framer-motion'
 import { Upload, Loader2, Check, X, FileCode2, ClipboardPaste, FolderTree, RotateCw, ArrowRight, Copy } from 'lucide-react'
 import { Modal } from '@/components/ui/primitives'
 import { cn } from '@/lib/utils'
@@ -8,6 +9,7 @@ import { cn } from '@/lib/utils'
 const EASE = [0.22, 1, 0.36, 1] as const
 
 export function LinkImporter() {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [pasted, setPasted] = useState('')
@@ -56,7 +58,7 @@ export function LinkImporter() {
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title={<span className="flex items-center gap-2"><Upload size={15} className="text-indigo-200/70" /> 导入</span>}
+        title={<span className="flex items-center gap-2"><Upload size={15} className="text-indigo-500" /> 导入</span>}
         className="max-w-xl"
       >
         <div className="space-y-4">
@@ -77,11 +79,11 @@ export function LinkImporter() {
             <motion.span
               animate={drag ? { y: -4, scale: 1.1 } : { y: 0, scale: 1 }}
               transition={{ type: 'spring', stiffness: 320, damping: 18 }}
-              className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-300/25 via-indigo-400/20 to-purple-400/25 text-indigo-100"
+              className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-300/25 via-indigo-400/20 to-purple-400/25 text-slate-700"
             >
               <FileCode2 size={22} />
             </motion.span>
-            <span className="font-mono text-[12.5px] text-indigo-100/60">bookmarks.html</span>
+            <span className="font-mono text-[12.5px] text-slate-600">bookmarks.html</span>
           </motion.button>
           <input
             ref={fileRef}
@@ -111,7 +113,7 @@ export function LinkImporter() {
               className="chip min-h-10 px-4"
             >
               <FolderTree size={13} /> → 分类
-              {createFolders && <Check size={12} className="text-violet-200" />}
+              {createFolders && <Check size={12} className="text-violet-600" />}
             </button>
           </div>
 
@@ -149,7 +151,7 @@ export function LinkImporter() {
           <AnimatePresence mode="wait">
             {busy && (
               <motion.div key="busy" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                          className="shimmer liquid flex h-14 items-center justify-center rounded-2xl text-indigo-100/60">
+                          className="shimmer liquid flex h-14 items-center justify-center rounded-2xl text-slate-600">
                 <Loader2 size={16} className="animate-spin" />
               </motion.div>
             )}
@@ -160,26 +162,26 @@ export function LinkImporter() {
                 transition={{ duration: 0.4, ease: EASE }}
                 className="liquid flex flex-wrap items-center gap-3 rounded-2xl p-3.5"
               >
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-400/15 text-emerald-300">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-400/15 text-emerald-600">
                   <Check size={17} />
                 </span>
                 <div className="flex flex-1 flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
-                  <span className="num text-white/90" title="导入">＋{result.imported}</span>
+                  <span className="num text-slate-900/90" title="导入">＋{result.imported}</span>
                   {result.folders > 0 && (
-                    <span className="num flex items-center gap-1 text-indigo-100/60" title="新分类"><FolderTree size={12} />{result.folders}</span>
+                    <span className="num flex items-center gap-1 text-slate-600" title="新分类"><FolderTree size={12} />{result.folders}</span>
                   )}
                   {result.skipped > 0 && (
-                    <span className="num flex items-center gap-1 text-indigo-100/35" title="重复跳过"><Copy size={12} />{result.skipped}</span>
+                    <span className="num flex items-center gap-1 text-slate-500" title="重复跳过"><Copy size={12} />{result.skipped}</span>
                   )}
                 </div>
-                <button onClick={() => location.reload()} className="btn btn-primary btn-icon h-10 w-10" aria-label="刷新" title="刷新">
+                <button onClick={() => router.refresh()} className="btn btn-primary btn-icon h-10 w-10" aria-label="刷新" title="刷新">
                   <RotateCw size={15} />
                 </button>
               </motion.div>
             )}
             {err && !busy && (
               <motion.p key="err" initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
-                        className="flex items-center gap-1.5 text-[12.5px] text-rose-300">
+                        className="flex items-center gap-1.5 text-[12.5px] text-rose-600">
                 <X size={12} /> {err}
               </motion.p>
             )}

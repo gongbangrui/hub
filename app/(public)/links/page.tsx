@@ -2,7 +2,7 @@ import { db, schema } from '@/db'
 import { asc, desc, eq } from 'drizzle-orm'
 import { Bookmark } from 'lucide-react'
 import { isAuthed } from '@/lib/auth'
-import { PageTitle } from '@/components/ui/fx'
+import { PageTitle } from '@/components/ui/page'
 import { LinksBrowser } from '@/components/public/links-browser'
 import { LinkImporter } from '@/components/public/link-importer'
 

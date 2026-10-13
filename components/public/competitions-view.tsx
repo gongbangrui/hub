@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m as motion, AnimatePresence } from 'framer-motion'
 import {
   Trophy, LayoutGrid, GitCommitVertical, Search, Plus, Pencil, Trash2, Calendar, Users, Award,
   ImageIcon, FileText, Download, ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut, Paperclip,
@@ -10,8 +10,11 @@ import type { Competition, Category, Attachment, FileRow } from '@/db/schema'
 import { cn, formatBytes, fileKind } from '@/lib/utils'
 import { fileUrl } from '@/lib/file-url'
 import { EmptyState, Sheet, LevelBadge, LEVELS } from '@/components/ui/primitives'
-import { EASE, GradText, Masonry, PageTitle } from '@/components/ui/fx'
+import { GradText, PageTitle } from '@/components/ui/page'
+import { Masonry } from '@/components/ui/masonry'
+import { EASE } from '@/lib/motion'
 import { CompetitionEditor } from '@/components/public/competition-editor'
+import { useRouter } from 'next/navigation'
 
 export type CompItem = Competition & {
   attachments: (Attachment & { file: FileRow | null })[]
@@ -37,6 +40,7 @@ export function CompetitionsView({ items, categories, authed }: {
   const [open, setOpen] = useState<CompItem | null>(null)
   const [editing, setEditing] = useState<CompItem | null>(null)
   const [creating, setCreating] = useState(false)
+  const router = useRouter()
 
   const years = useMemo(
     () => [...new Set(items.map(yearOf))].filter(Boolean).sort((a, b) => Number(b) - Number(a)),
@@ -82,8 +86,10 @@ export function CompetitionsView({ items, categories, authed }: {
 
   async function remove(c: CompItem) {
     if (!confirm(`删除「${c.name}」？`)) return
-    await fetch(`/api/competitions/${c.id}`, { method: 'DELETE' })
-    location.reload()
+    const r = await fetch(`/api/competitions/${c.id}`, { method: 'DELETE' })
+    if (!r.ok) { alert('删除失败'); return }
+    // 用 refresh 而不是整页重载：保住筛选、排序与滚动位置
+    router.refresh()
   }
 
   const filterProps = {
@@ -163,20 +169,12 @@ export function CompetitionsView({ items, categories, authed }: {
               {view === 'masonry' ? (
                 <motion.div key="masonry" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.3, ease: EASE }}>
-                  <Masonry>
-                    <AnimatePresence initial={true}>
-                      {filtered.map((c, i) => (
-                        <motion.div
-                          key={c.id}
-                          initial={{ opacity: 0, y: 18, filter: 'blur(6px)' }}
-                          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                          exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.18 } }}
-                          transition={{ duration: 0.5, ease: EASE, delay: Math.min(i, 12) * 0.04 }}
-                        >
-                          <CompCard {...cardProps(c)} />
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
+                  <Masonry minCol={320}>
+                    {filtered.map((c, i) => (
+                      <div key={c.id} className="enter" style={{ ['--i' as string]: Math.min(i, 10) }}>
+                        <CompCard {...cardProps(c)} />
+                      </div>
+                    ))}
                   </Masonry>
                 </motion.div>
               ) : (
@@ -248,7 +246,7 @@ function ViewToggle({ view, onChange }: { view: View; onChange: (v: View) => voi
           aria-pressed={view === v}
           className={cn(
             'relative flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
-            view === v ? 'text-white' : 'text-indigo-100/40 hover:text-white/80',
+            view === v ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900/80',
           )}
         >
           {view === v && (
@@ -288,7 +286,7 @@ function Pill({ active, onClick, layoutId, children, label, className }: {
       title={label}
       className={cn(
         'relative inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 text-[12.5px] transition-colors',
-        active ? 'text-white' : 'text-indigo-100/55 hover:bg-white/[0.05] hover:text-white',
+        active ? 'text-slate-900' : 'text-slate-600 hover:bg-slate-900/5 hover:text-slate-900',
         className,
       )}
     >
@@ -308,7 +306,7 @@ function Pill({ active, onClick, layoutId, children, label, className }: {
 function SearchField({ query, setQuery }: { query: string; setQuery: (v: string) => void }) {
   return (
     <div className="relative">
-      <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-indigo-200/40" />
+      <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400" />
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
@@ -318,7 +316,7 @@ function SearchField({ query, setQuery }: { query: string; setQuery: (v: string)
       />
       {query && (
         <button onClick={() => setQuery('')} aria-label="清除" title="清除"
-                className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-indigo-100/45 hover:text-white">
+                className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 hover:text-slate-900">
           <X size={13} />
         </button>
       )}
@@ -329,7 +327,7 @@ function SearchField({ query, setQuery }: { query: string; setQuery: (v: string)
 function FilterPanel(p: FilterProps) {
   const group = (icon: React.ReactNode, title: string, body: React.ReactNode) => (
     <div className="space-y-2">
-      <div className="flex items-center gap-2 text-indigo-200/45" title={title} aria-label={title}>
+      <div className="flex items-center gap-2 text-indigo-400" title={title} aria-label={title}>
         {icon}
         <span className="hairline flex-1" />
       </div>
@@ -392,7 +390,7 @@ function FilterPanel(p: FilterProps) {
 }
 
 function FilterBar(p: FilterProps) {
-  const sep = <span className="mx-1 h-4 w-px shrink-0 bg-white/10" aria-hidden />
+  const sep = <span className="mx-1 h-4 w-px shrink-0 bg-slate-900/10" aria-hidden />
   return (
     <div className="liquid space-y-2 rounded-2xl p-2">
       <div className="flex items-center gap-2">
@@ -449,16 +447,16 @@ function Actions({ onEdit, onDelete, className, overlay }: {
   onEdit: () => void; onDelete: () => void; className?: string; overlay?: boolean
 }) {
   const base = overlay
-    ? 'flex h-10 w-10 items-center justify-center rounded-xl border border-white/12 bg-[#060818]/60 backdrop-blur-md transition-colors'
+    ? 'flex h-10 w-10 items-center justify-center rounded-xl border border-slate-900/12 bg-white/70 backdrop-blur-md transition-colors'
     : 'btn btn-ghost btn-icon h-10 w-10'
   return (
     <div className={cn('flex items-center gap-1 transition-opacity', HOVER_REVEAL, className)}>
       <button onClick={(e) => { e.stopPropagation(); onEdit() }} aria-label="编辑" title="编辑"
-              className={cn(base, overlay && 'hover:border-indigo-300/50 hover:text-white')}>
+              className={cn(base, overlay && 'hover:border-indigo-300/50 hover:text-slate-900')}>
         <Pencil size={13} />
       </button>
       <button onClick={(e) => { e.stopPropagation(); onDelete() }} aria-label="删除" title="删除"
-              className={cn(base, overlay ? 'text-rose-200/80 hover:border-rose-400/50 hover:bg-rose-500/25' : 'btn-danger')}>
+              className={cn(base, overlay ? 'text-rose-600 hover:border-rose-400/50 hover:bg-rose-500/25' : 'btn-danger')}>
         <Trash2 size={13} />
       </button>
     </div>
@@ -470,16 +468,16 @@ function TeamRow({ c, max = 4 }: { c: CompItem; max?: number }) {
   if (!team.length) return null
   return (
     <span className="flex items-center gap-1.5" title={c.team ?? ''}>
-      <Users size={11} className="shrink-0 text-indigo-200/45" />
+      <Users size={11} className="shrink-0 text-indigo-400" />
       <span className="flex -space-x-1.5">
         {team.slice(0, max).map((m, i) => (
           <span key={i}
-                className="flex h-5 w-5 items-center justify-center rounded-full border border-[#0b0f26] bg-gradient-to-br from-sky-300/40 via-indigo-400/40 to-purple-400/40 text-[9.5px] font-medium text-white/85">
+                className="flex h-5 w-5 items-center justify-center rounded-full border border-white bg-gradient-to-br from-sky-300/40 via-indigo-400/40 to-purple-400/40 text-[9.5px] font-medium text-slate-900/85">
             {m.slice(0, 1)}
           </span>
         ))}
         {team.length > max && (
-          <span className="num flex h-5 min-w-5 items-center justify-center rounded-full border border-[#0b0f26] bg-white/10 px-1 text-[9px] text-white/70">
+          <span className="num flex h-5 min-w-5 items-center justify-center rounded-full border border-white bg-slate-900/10 px-1 text-[9px] text-slate-900/70">
             +{team.length - max}
           </span>
         )}
@@ -516,32 +514,32 @@ function CompCard({ c, authed, onOpen, onEdit, onDelete }: CardProps) {
         <div className="relative overflow-hidden rounded-t-3xl">
           <img src={fileUrl(cover, true)} alt="" loading="lazy"
                className="block max-h-80 w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#060818] via-[#060818]/10 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-slate-900/10 to-transparent" />
           <div className="absolute left-3 top-3"><LevelBadge level={c.level} className="backdrop-blur-md" /></div>
         </div>
       ) : (
         <div className="relative flex items-center gap-2 px-4 pt-4">
           <span
-            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10"
+            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-900/10"
             style={{ background: `radial-gradient(circle at 30% 20%, ${levelDot(c.level)}55, transparent 70%)` }}
           >
-            <Trophy size={16} className="text-white/75" />
+            <Trophy size={16} className="text-slate-900/75" />
           </span>
           <LevelBadge level={c.level} />
         </div>
       )}
 
       <div className={cn('relative space-y-2.5 p-4', cover && '-mt-6')}>
-        <h3 className="text-[15px] font-medium leading-snug text-white/92">{c.name}</h3>
+        <h3 className="text-[15px] font-medium leading-snug text-slate-900/92">{c.name}</h3>
 
         {c.result && (
           <p className="flex items-start gap-1.5 text-[13.5px] font-semibold leading-snug">
-            <Award size={14} className="mt-[1px] shrink-0 text-indigo-200/70" />
+            <Award size={14} className="mt-[1px] shrink-0 text-indigo-500" />
             <GradText>{c.result}</GradText>
           </p>
         )}
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-indigo-100/45">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-slate-500">
           {range && <span className="num flex items-center gap-1"><Calendar size={11} />{range}</span>}
           <TeamRow c={c} />
           {c.attachments.length > 0 && (
@@ -579,7 +577,7 @@ function Timeline({ grouped, cardProps }: {
             >
               <span className="liquid inline-flex items-center gap-2 rounded-full px-4 py-1.5">
                 <span className="num text-lg font-bold tracking-tight"><GradText>{y}</GradText></span>
-                <span className="num text-[11px] text-indigo-100/40">{list.length}</span>
+                <span className="num text-[11px] text-slate-500">{list.length}</span>
               </span>
             </motion.div>
 
@@ -599,7 +597,7 @@ function Timeline({ grouped, cardProps }: {
                     <span
                       aria-hidden
                       className={cn(
-                        'absolute left-[10px] top-6 h-3 w-3 rounded-full ring-4 ring-[#060818]',
+                        'absolute left-[10px] top-6 h-3 w-3 rounded-full ring-4 ring-white',
                         right ? 'md:left-[-6px]' : 'md:left-auto md:right-[-6px]',
                       )}
                       style={{ background: color, boxShadow: `0 0 14px ${color}` }}
@@ -636,22 +634,22 @@ function TimelineCard({ c, authed, onOpen, onEdit, onDelete, flip }: CardProps &
     >
       {cover ? (
         <img src={fileUrl(cover, true)} alt="" loading="lazy"
-             className="h-14 w-14 shrink-0 rounded-xl border border-white/10 object-cover" />
+             className="h-14 w-14 shrink-0 rounded-xl border border-slate-900/10 object-cover" />
       ) : (
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-white/10"
+        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-slate-900/10"
               style={{ background: `radial-gradient(circle at 30% 20%, ${levelDot(c.level)}40, transparent 70%)` }}>
-          <Trophy size={17} className="text-white/60" />
+          <Trophy size={17} className="text-slate-900/60" />
         </span>
       )}
 
       <div className="min-w-0 flex-1">
         <div className={cn('flex flex-wrap items-center gap-2', flip && 'md:justify-end')}>
           <LevelBadge level={c.level} />
-          {range && <span className="num text-[11px] text-indigo-100/40">{range}</span>}
+          {range && <span className="num text-[11px] text-slate-500">{range}</span>}
         </div>
-        <h3 className="mt-1.5 line-clamp-2 text-[14.5px] leading-snug text-white/90">{c.name}</h3>
-        <div className={cn('mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-indigo-100/45', flip && 'md:justify-end')}>
-          {c.result && <span className="flex items-center gap-1 font-semibold"><Award size={11} className="text-indigo-200/60" /><GradText>{c.result}</GradText></span>}
+        <h3 className="mt-1.5 line-clamp-2 text-[14.5px] leading-snug text-slate-900/90">{c.name}</h3>
+        <div className={cn('mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500', flip && 'md:justify-end')}>
+          {c.result && <span className="flex items-center gap-1 font-semibold"><Award size={11} className="text-indigo-500" /><GradText>{c.result}</GradText></span>}
           <TeamRow c={c} max={3} />
           {c.attachments.length > 0 && <span className="num flex items-center gap-1"><Paperclip size={11} />{c.attachments.length}</span>}
         </div>
@@ -691,9 +689,9 @@ function DetailSheet({ item, onClose, authed, onEdit }: {
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <LevelBadge level={shown.level} />
-              {range && <span className="num flex items-center gap-1 text-[11px] text-indigo-100/45"><Calendar size={11} />{range}</span>}
+              {range && <span className="num flex items-center gap-1 text-[11px] text-slate-500"><Calendar size={11} />{range}</span>}
             </div>
-            <h2 className="mt-2 text-lg font-semibold leading-snug tracking-tight text-white/95">{shown.name}</h2>
+            <h2 className="mt-2 text-lg font-semibold leading-snug tracking-tight text-slate-900/95">{shown.name}</h2>
           </div>
         )}
       >
@@ -708,17 +706,17 @@ function DetailSheet({ item, onClose, authed, onEdit }: {
               <Block className="grid gap-3 sm:grid-cols-2">
                 {shown.result && (
                   <div className="liquid grad-border rounded-2xl p-4" data-active="true">
-                    <Award size={15} className="mb-2 text-indigo-200/70" />
+                    <Award size={15} className="mb-2 text-indigo-500" />
                     <p className="text-[17px] font-semibold leading-snug"><GradText animated>{shown.result}</GradText></p>
                   </div>
                 )}
                 {team.length > 0 && (
                   <div className="liquid rounded-2xl p-4" title="团队">
-                    <Users size={15} className="mb-2 text-indigo-200/70" />
+                    <Users size={15} className="mb-2 text-indigo-500" />
                     <div className="flex flex-wrap gap-1.5">
                       {team.map((m, i) => (
-                        <span key={i} className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] py-0.5 pl-0.5 pr-2.5 text-[12.5px] text-white/80">
-                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-sky-300/50 via-indigo-400/50 to-purple-400/50 text-[10px] text-white">
+                        <span key={i} className="inline-flex items-center gap-1.5 rounded-full border border-slate-900/10 bg-slate-900/5 py-0.5 pl-0.5 pr-2.5 text-[12.5px] text-slate-900/80">
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-sky-300/50 via-indigo-400/50 to-purple-400/50 text-[10px] text-slate-900">
                             {m.slice(0, 1)}
                           </span>
                           {m}
@@ -732,13 +730,13 @@ function DetailSheet({ item, onClose, authed, onEdit }: {
 
             {shown.description && (
               <Block>
-                <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-indigo-50/70">{shown.description}</p>
+                <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-slate-600">{shown.description}</p>
               </Block>
             )}
 
             {images.length > 0 && (
               <Block>
-                <h4 className="mb-3 flex items-center gap-2 text-indigo-200/50" title="图片">
+                <h4 className="mb-3 flex items-center gap-2 text-indigo-400" title="图片">
                   <ImageIcon size={13} /><span className="num text-[11px]">{images.length}</span>
                   <span className="hairline flex-1" />
                 </h4>
@@ -750,12 +748,12 @@ function DetailSheet({ item, onClose, authed, onEdit }: {
                       whileHover={{ y: -2 }}
                       whileTap={{ scale: 0.97 }}
                       aria-label={a.caption || `图片 ${i + 1}`}
-                      className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-white/10"
+                      className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-slate-900/10"
                     >
                       <img src={fileUrl(a.file!, true)} alt={a.caption ?? ''} loading="lazy"
                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.07]" />
-                      <span className="absolute inset-0 flex items-center justify-center bg-[#060818]/45 opacity-0 transition-opacity group-hover:opacity-100">
-                        <ZoomIn size={16} className="text-white/90" />
+                      <span className="absolute inset-0 flex items-center justify-center bg-slate-900/35 opacity-0 transition-opacity group-hover:opacity-100">
+                        <ZoomIn size={16} className="text-slate-900/90" />
                       </span>
                     </motion.button>
                   ))}
@@ -765,7 +763,7 @@ function DetailSheet({ item, onClose, authed, onEdit }: {
 
             {others.length > 0 && (
               <Block>
-                <h4 className="mb-3 flex items-center gap-2 text-indigo-200/50" title="文件">
+                <h4 className="mb-3 flex items-center gap-2 text-indigo-400" title="文件">
                   <FileText size={13} /><span className="num text-[11px]">{others.length}</span>
                   <span className="hairline flex-1" />
                 </h4>
@@ -774,10 +772,10 @@ function DetailSheet({ item, onClose, authed, onEdit }: {
                     const pdf = (a.file!.mime ?? '').includes('pdf') || /\.pdf$/i.test(a.file!.originalName)
                     return (
                       <li key={a.id} className="liquid liquid-hover flex items-center gap-3 rounded-xl py-1.5 pl-3.5 pr-1.5">
-                        <FileText size={14} className="shrink-0 text-indigo-200/50" />
+                        <FileText size={14} className="shrink-0 text-indigo-400" />
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[13px] text-white/85">{a.file!.originalName}</span>
-                          <span className="num text-[10.5px] text-indigo-100/35">{formatBytes(a.file!.size)}</span>
+                          <span className="block truncate text-[13px] text-slate-900/85">{a.file!.originalName}</span>
+                          <span className="num text-[10.5px] text-slate-500">{formatBytes(a.file!.size)}</span>
                         </span>
                         {pdf && (
                           <a href={fileUrl(a.file!, true)} target="_blank" rel="noreferrer"
@@ -796,11 +794,11 @@ function DetailSheet({ item, onClose, authed, onEdit }: {
             )}
 
             {shown.attachments.length === 0 && !shown.description && !shown.result && team.length === 0 && (
-              <Block className="flex justify-center py-6 text-2xl text-indigo-200/25">∅</Block>
+              <Block className="flex justify-center py-6 text-2xl text-indigo-400">∅</Block>
             )}
 
             {authed && (
-              <Block className="flex gap-2 border-t border-white/[0.07] pt-5">
+              <Block className="flex gap-2 border-t border-slate-900/7 pt-5">
                 <button onClick={onEdit} className="btn btn-sm h-10 px-4"><Pencil size={13} /> 编辑</button>
               </Block>
             )}
@@ -863,13 +861,13 @@ export function Lightbox({ images, index, onClose, onIndex }: {
           key="lightbox"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           transition={{ duration: 0.25 }}
-          className="fixed inset-0 z-[70] flex flex-col bg-[#04050f]/92 backdrop-blur-2xl"
+          className="fixed inset-0 z-[70] flex flex-col bg-slate-100/90 backdrop-blur-2xl"
           onClick={onClose}
           role="dialog"
           aria-modal="true"
         >
           <div className="flex items-center justify-between gap-2 px-4 py-3 sm:px-5 sm:py-4" onClick={(e) => e.stopPropagation()}>
-            <span className="num liquid rounded-full px-3 py-1 text-[12px] text-indigo-100/70">{index + 1} / {images.length}</span>
+            <span className="num liquid rounded-full px-3 py-1 text-[12px] text-slate-600">{index + 1} / {images.length}</span>
             <div className="flex items-center gap-1">
               <button onClick={() => setZoom((z) => !z)} className="btn btn-ghost btn-icon h-10 w-10"
                       aria-label={zoom ? '缩小' : '放大'} title={zoom ? '缩小' : '放大'}>
@@ -917,7 +915,7 @@ export function Lightbox({ images, index, onClose, onIndex }: {
           )}
 
           {cur.caption && (
-            <p className="px-6 pb-6 text-center text-[13px] text-indigo-100/60" onClick={(e) => e.stopPropagation()}>{cur.caption}</p>
+            <p className="px-6 pb-6 text-center text-[13px] text-slate-600" onClick={(e) => e.stopPropagation()}>{cur.caption}</p>
           )}
         </motion.div>
       )}

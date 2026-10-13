@@ -11,8 +11,8 @@ export const dynamic = 'force-dynamic'
 const fileSize = (p: string) => { try { return fs.statSync(p).size } catch { return 0 } }
 
 export default async function SettingsPage() {
-  const [site_title, site_subtitle, hero_line, footer_note, expired, total] = await Promise.all([
-    getSetting('site_title'), getSetting('site_subtitle'), getSetting('hero_line'), getSetting('footer_note'),
+  const [site_title, site_subtitle, hero_line, footer_note, announcement, expired, total] = await Promise.all([
+    getSetting('site_title'), getSetting('site_subtitle'), getSetting('hero_line'), getSetting('footer_note'), getSetting('announcement'),
     db.select({ n: sql<number>`count(*)` }).from(schema.files)
       .where(and(isNotNull(schema.files.expiresAt), lt(schema.files.expiresAt, new Date()))).get(),
     db.select({ n: sql<number>`count(*)` }).from(schema.files).get(),
@@ -29,6 +29,7 @@ export default async function SettingsPage() {
         site_subtitle: site_subtitle ?? '',
         hero_line: hero_line ?? '',
         footer_note: footer_note ?? '',
+        announcement: announcement ?? '',
       }}
       storage={{
         root: DATA_ROOT,

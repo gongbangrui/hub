@@ -3,9 +3,12 @@ import { cookies } from 'next/headers'
 import { scryptSync, randomBytes, timingSafeEqual } from 'node:crypto'
 import { db, schema } from '@/db'
 import { eq } from 'drizzle-orm'
+import { cache } from 'react'
+
+import { authSecretBytes } from '@/lib/secret'
 
 const COOKIE = 'hub_session'
-const secret = () => new TextEncoder().encode(process.env.AUTH_SECRET || 'dev-secret-change-me')
+const secret = authSecretBytes
 
 export function hashPassword(pw: string) {
   const salt = randomBytes(16).toString('hex')
@@ -20,22 +23,40 @@ export function verifyPassword(pw: string, stored: string) {
   return a.length === b.length && timingSafeEqual(a, b)
 }
 
-export async function getSetting(key: string) {
+async function readSetting(key: string) {
   const row = await db.select().from(schema.settings).where(eq(schema.settings.key, key)).get()
   return row?.value ?? null
 }
+
+/** 同一次请求内按 key 去重：布局和页面各取一次 site_title 只查一次库 */
+export const getSetting = cache(readSetting)
 
 export async function setSetting(key: string, value: string) {
   await db.insert(schema.settings).values({ key, value })
     .onConflictDoUpdate({ target: schema.settings.key, set: { value } })
 }
 
-export async function ensureInit() {
-  const existing = await getSetting('password_hash')
-  if (!existing) {
-    await setSetting('password_hash', hashPassword(process.env.ADMIN_PASSWORD || 'admin'))
+const g = globalThis as unknown as { __initDone?: Promise<void> }
+
+/** 首次访问时写入默认设置与初始口令。整个进程只做一次，失败了下次再试 */
+export function ensureInit() {
+  if (!g.__initDone) {
+    g.__initDone = doInit().catch((e) => { g.__initDone = undefined; throw e })
   }
-  const title = await getSetting('site_title')
+  return g.__initDone
+}
+
+async function doInit() {
+  const existing = await readSetting('password_hash')
+  if (!existing) {
+    const initial = process.env.ADMIN_PASSWORD
+    // 生产环境不允许落到默认口令 'admin'
+    if (!initial && process.env.NODE_ENV === 'production') {
+      throw new Error('首次启动需要设置 ADMIN_PASSWORD')
+    }
+    await setSetting('password_hash', hashPassword(initial || 'admin'))
+  }
+  const title = await readSetting('site_title')
   if (title === null) {
     await setSetting('site_title', 'Foliage')
     await setSetting('site_subtitle', '链接、文件、竞赛与论文')
@@ -69,7 +90,7 @@ export async function isAuthed(): Promise<boolean> {
   const token = jar.get(COOKIE)?.value
   if (!token) return false
   try {
-    await jwtVerify(token, secret())
+    await jwtVerify(token, secret(), { algorithms: ['HS256'] })
     return true
   } catch {
     return false

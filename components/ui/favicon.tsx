@@ -14,37 +14,42 @@ export function Favicon({ url, title, size = 20, radius = 'rounded-[6px]', class
   radius?: string
   className?: string
 }) {
-  const [ok, setOk] = useState(true)
+  const [state, setState] = useState<'loading' | 'ok' | 'fail'>('loading')
   const ref = useRef<HTMLImageElement>(null)
 
   useEffect(() => {
     const el = ref.current
-    if (el && el.complete && el.naturalWidth === 0) setOk(false)
+    if (!el || !el.complete) return
+    setState(el.naturalWidth === 0 ? 'fail' : 'ok')
   }, [])
 
-  if (!ok) {
-    return (
-      <span
-        aria-hidden
-        className={cn('flex shrink-0 items-center justify-center bg-gradient-to-br font-semibold text-white', radius, className)}
-        style={{ width: size, height: size, fontSize: Math.round(size * 0.52) }}
-      >
-        {title.charAt(0).toUpperCase()}
-      </span>
-    )
-  }
+  const tile = (
+    <span
+      aria-hidden
+      className={cn('flex shrink-0 items-center justify-center bg-gradient-to-br font-semibold text-white shadow-sm', toneOf(title), radius, className)}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.52) }}
+    >
+      {title.charAt(0).toUpperCase()}
+    </span>
+  )
+  if (state === 'fail') return tile
 
+  // 加载中先显示首字母色块，图标到了再淡入覆盖，避免空白格
   return (
-    <img
-      ref={ref}
-      src={`/api/icon?u=${encodeURIComponent(url)}`}
-      alt=""
-      width={size}
-      height={size}
-      loading="lazy"
-      onError={() => setOk(false)}
-      className={cn('shrink-0 object-contain', radius, className)}
-      style={{ width: size, height: size }}
-    />
+    <span className="relative inline-flex shrink-0" style={{ width: size, height: size }}>
+      {state === 'loading' && tile}
+      <img
+        ref={ref}
+        src={`/api/icon?u=${encodeURIComponent(url)}`}
+        alt=""
+        width={size}
+        height={size}
+        loading="lazy"
+        onLoad={(e) => setState(e.currentTarget.naturalWidth === 0 ? 'fail' : 'ok')}
+        onError={() => setState('fail')}
+        className={cn('object-contain', radius, state === 'loading' ? 'absolute inset-0 opacity-0' : '', className)}
+        style={{ width: size, height: size }}
+      />
+    </span>
   )
 }

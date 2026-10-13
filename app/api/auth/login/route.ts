@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { checkRate, clearFails, clientIp, createSession, getSetting, recordFail, verifyPassword } from '@/lib/auth'
+import { checkRate, clearFails, clientIp, createSession, ensureInit, getSetting, recordFail, verifyPassword } from '@/lib/auth'
 
 export const runtime = 'nodejs'
 
@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '请输入口令' }, { status: 400 })
   }
 
+  await ensureInit()
   const hash = await getSetting('password_hash')
   if (!hash || !verifyPassword(password, hash)) {
     recordFail(ip)

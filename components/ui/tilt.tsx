@@ -1,6 +1,6 @@
 'use client'
 import { useRef, useState } from 'react'
-import { motion, useMotionValue, useSpring, useTransform, useReducedMotion, useMotionTemplate } from 'framer-motion'
+import { m as motion, useMotionValue, useSpring, useTransform, useReducedMotion, useMotionTemplate } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 /** 3D 倾斜 + 光斑（仅鼠标，触屏 / 减少动效时禁用） */

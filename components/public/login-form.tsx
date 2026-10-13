@@ -1,10 +1,9 @@
 'use client'
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { motion, AnimatePresence, useAnimationControls } from 'framer-motion'
+import { m as motion, AnimatePresence, useAnimationControls } from 'framer-motion'
 import { Loader2, ArrowRight, KeyRound, X, Hourglass } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { EASE } from '@/components/ui/fx'
 
 /** 只允许站内相对路径，防止开放重定向 */
 function safeNext(v: string | null) {
@@ -43,12 +42,9 @@ export function LoginForm({ title }: { title?: string }) {
   }
 
   return (
-    <motion.form
+    <form
       onSubmit={submit}
-      initial={{ opacity: 0, y: 18, scale: 0.97, filter: 'blur(10px)' }}
-      animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-      transition={{ duration: 0.7, ease: EASE }}
-      className="liquid relative w-full max-w-[360px] rounded-[28px] p-8 sm:p-10"
+      className="enter-blur liquid relative w-full max-w-[360px] rounded-[28px] p-8 sm:p-10"
     >
       <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/70 to-transparent" />
 
@@ -61,7 +57,7 @@ export function LoginForm({ title }: { title?: string }) {
         >
           <span className="absolute inset-0 rounded-[30%] bg-gradient-to-br from-sky-300 via-indigo-400 to-purple-400 shadow-[0_14px_44px_-8px_rgba(129,140,248,0.85)]" />
           <span className="absolute inset-[1px] rounded-[30%] bg-gradient-to-b from-white/40 to-transparent opacity-70" />
-          <KeyRound size={24} className="relative text-[#0a0b1e]" strokeWidth={2.2} />
+          <KeyRound size={24} className="relative text-white" strokeWidth={2.2} />
         </motion.span>
         {title && <h1 className="title-xl mt-6 text-2xl">{title}</h1>}
       </div>
@@ -94,13 +90,13 @@ export function LoginForm({ title }: { title?: string }) {
           {err && (
             <motion.span
               initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className="flex items-center gap-1.5 text-[12.5px] text-rose-300"
+              className="flex items-center gap-1.5 text-[12.5px] text-rose-600"
             >
               {err.wait ? <><Hourglass size={13} /><span className="num">{err.wait}s</span></> : <X size={14} aria-label="口令不对" />}
             </motion.span>
           )}
         </AnimatePresence>
       </div>
-    </motion.form>
+    </form>
   )
 }

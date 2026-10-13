@@ -1,27 +1,28 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import { Aurora } from '@/components/motion/aurora'
+import { Backdrop } from '@/components/motion/backdrop'
 import { PointerFx } from '@/components/motion/pointer-fx'
-import { ensureInit } from '@/lib/auth'
-
-// 根布局查库（ensureInit），整站动态渲染，构建期不预渲染、不碰 data 目录
-export const dynamic = 'force-dynamic'
+import { MotionProvider } from '@/components/motion/motion-provider'
+import { RouteProgress } from '@/components/motion/route-progress'
 
 export const metadata: Metadata = {
   title: 'Foliage',
   description: '链接、文件、竞赛与论文',
 }
 
-export const viewport: Viewport = { themeColor: '#060818', colorScheme: 'dark' }
+export const viewport: Viewport = { themeColor: '#f3f8ff', colorScheme: 'light' }
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  await ensureInit()
+// 根布局不再碰数据库：不强制动态渲染；读 cookie / 查库的页面各自会变成动态
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN" suppressHydrationWarning>
-      <body className="noise min-h-dvh antialiased">
-        <Aurora />
+      <body className="min-h-dvh antialiased">
+        <Backdrop />
         <PointerFx />
-        <div className="relative z-[2]">{children}</div>
+        <MotionProvider>
+          <RouteProgress />
+          <div className="relative z-[2]">{children}</div>
+        </MotionProvider>
       </body>
     </html>
   )

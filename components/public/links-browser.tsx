@@ -1,21 +1,23 @@
 'use client'
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
+import { m as motion, AnimatePresence, LayoutGroup } from 'framer-motion'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
-  Search, Pin, Hash, X, ArrowUpRight, Plus, Pencil, Trash2, Bookmark, SearchX,
-  RotateCcw, LayoutGrid, MousePointerClick, Settings2,
+  Search, Pin, Hash, X, ArrowUpRight, Plus, Pencil, Trash2, Bookmark, SearchX, Copy, Check,
+  RotateCcw, LayoutGrid, MousePointerClick, Settings2, Rows3, Columns3, Grid2x2,
 } from 'lucide-react'
 import type { Link as LinkRow, Category } from '@/db/schema'
 import { cn, hostOf, toneOf } from '@/lib/utils'
-import { Tilt } from '@/components/ui/tilt'
+import { Masonry } from '@/components/ui/masonry'
 import { EmptyState } from '@/components/ui/primitives'
 import { Favicon } from '@/components/ui/favicon'
-import { stagger, item } from '@/components/motion/reveal'
 import { LinksEditor } from '@/components/public/links-editor'
 
 type Props = { links: LinkRow[]; categories: Category[]; authed: boolean }
 type CatKey = number | 'all' | 'none'
+type View = 'masonry' | 'grid' | 'list'
+const VIEW_KEY = 'hub.links.view'
 
 const EASE = [0.22, 1, 0.36, 1] as const
 const SPRING = { type: 'spring', stiffness: 420, damping: 34 } as const
@@ -72,7 +74,28 @@ export function LinksBrowser({ links, categories, authed }: Props) {
   const [focusIdx, setFocusIdx] = useState(-1)
   const [editing, setEditing] = useState<LinkRow | null>(null)
   const [creating, setCreating] = useState(false)
+  const [view, setView] = useState<View>('masonry')
   const searchRef = useRef<HTMLInputElement>(null)
+  const router = useRouter()
+  const params = useSearchParams()
+
+  // 视图偏好记在本机;?new=1(来自 ⌘K「新建收藏」)直接打开编辑器
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem(VIEW_KEY)
+      if (v === 'masonry' || v === 'grid' || v === 'list') setView(v)
+    } catch { /* 隐私模式 */ }
+  }, [])
+  useEffect(() => {
+    if (authed && params.get('new') === '1') {
+      setCreating(true)
+      router.replace('/links', { scroll: false })
+    }
+  }, [authed, params, router])
+  const pickView = (v: View) => {
+    setView(v)
+    try { localStorage.setItem(VIEW_KEY, v) } catch { /* ignore */ }
+  }
 
   const allTags = useMemo(() => {
     const m = new Map<string, number>()
@@ -165,7 +188,7 @@ export function LinksBrowser({ links, categories, authed }: Props) {
   async function remove(l: LinkRow) {
     if (!confirm(`删除「${l.title}」？`)) return
     await fetch(`/api/links/${l.id}`, { method: 'DELETE' })
-    location.reload()
+    router.refresh()
   }
 
   const filteredOut = query || tag || cat !== 'all'
@@ -176,13 +199,7 @@ export function LinksBrowser({ links, categories, authed }: Props) {
       {/* ── 左栏：分类 / 标签 ── */}
       <aside className="min-w-0 space-y-3 lg:sticky lg:top-24 lg:self-start">
         <LayoutGroup id="links-rail">
-          <motion.nav
-            aria-label="分类"
-            initial={{ opacity: 0, x: -14 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.55, ease: EASE }}
-            className="liquid rounded-2xl p-1.5 lg:rounded-3xl lg:p-2"
-          >
+          <nav aria-label="分类" className="enter liquid rounded-2xl p-1.5 lg:rounded-3xl lg:p-2">
             <div className={cn('flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible', NOSCROLL)}>
               <RailItem active={cat === 'all'} onClick={() => setCat('all')} count={links.length} icon={<LayoutGrid size={14} />}>
                 全部
@@ -198,7 +215,7 @@ export function LinksBrowser({ links, categories, authed }: Props) {
                 </RailItem>
               )}
             </div>
-          </motion.nav>
+          </nav>
 
           {allTags.length > 0 && (
             <motion.div
@@ -208,7 +225,7 @@ export function LinksBrowser({ links, categories, authed }: Props) {
               className="liquid rounded-2xl p-1.5 lg:rounded-3xl lg:p-3"
             >
               <div className={cn('flex items-center gap-1.5 overflow-x-auto lg:max-h-[38vh] lg:flex-wrap lg:overflow-y-auto lg:overflow-x-visible', NOSCROLL)}>
-                <Hash size={13} className="hidden shrink-0 text-indigo-200/35 lg:block" aria-hidden />
+                <Hash size={13} className="hidden shrink-0 text-indigo-400 lg:block" aria-hidden />
                 {allTags.map(([t, n]) => (
                   <button
                     key={t}
@@ -225,7 +242,7 @@ export function LinksBrowser({ links, categories, authed }: Props) {
             </motion.div>
           )}
 
-          <div className="hidden items-center gap-1 px-2 pt-1 text-indigo-100/30 lg:flex" aria-hidden>
+          <div className="hidden items-center gap-1 px-2 pt-1 text-slate-500 lg:flex" aria-hidden>
             <span className="kbd">←</span><span className="kbd">↑</span><span className="kbd">↓</span><span className="kbd">→</span>
             <span className="mx-1 opacity-50">·</span>
             <span className="kbd">↵</span>
@@ -237,14 +254,9 @@ export function LinksBrowser({ links, categories, authed }: Props) {
 
       {/* ── 右栏：搜索 + 卡片 ── */}
       <section className="min-w-0 space-y-6">
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: EASE }}
-          className="liquid sticky top-3 z-30 flex items-center gap-2 rounded-2xl p-2 md:top-[76px]"
-        >
+        <div className="enter liquid sticky top-3 z-30 flex items-center gap-2 rounded-2xl p-2 md:top-[76px]" style={{ ['--i' as string]: 1 }}>
           <div className="relative min-w-0 flex-1">
-            <Search size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-indigo-200/40" />
+            <Search size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-indigo-400" />
             <input
               ref={searchRef}
               value={query}
@@ -259,7 +271,7 @@ export function LinksBrowser({ links, categories, authed }: Props) {
                   key="x"
                   initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.7 }}
                   onClick={() => { setQuery(''); searchRef.current?.focus() }}
-                  className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-indigo-100/50 hover:bg-white/[0.07] hover:text-white"
+                  className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-900/7 hover:text-slate-900"
                   aria-label="清除" title="清除"
                 >
                   <X size={14} />
@@ -276,9 +288,31 @@ export function LinksBrowser({ links, categories, authed }: Props) {
             </AnimatePresence>
           </div>
 
-          <span className="num hidden shrink-0 px-1.5 text-[12px] text-indigo-100/40 sm:inline" aria-live="polite">
+          <span className="num hidden shrink-0 px-1.5 text-[12px] text-slate-500 sm:inline" aria-live="polite">
             {filtered.length}<span className="opacity-50">/{links.length}</span>
           </span>
+
+          <div className="hidden items-center gap-0.5 rounded-xl bg-slate-900/[0.05] p-0.5 sm:flex" role="group" aria-label="视图">
+            {([['masonry', Columns3, '瀑布流'], ['grid', Grid2x2, '网格'], ['list', Rows3, '列表']] as const).map(([k, Icon, label]) => (
+              <button
+                key={k}
+                onClick={() => pickView(k)}
+                aria-pressed={view === k}
+                aria-label={label}
+                title={label}
+                className={cn(
+                  'relative flex h-9 w-9 items-center justify-center rounded-[10px] transition-colors',
+                  view === k ? 'text-indigo-700' : 'text-slate-500 hover:text-slate-800',
+                )}
+              >
+                {view === k && (
+                  <motion.span layoutId="links-view-pill" transition={SPRING}
+                    className="absolute inset-0 rounded-[10px] bg-white shadow-[0_2px_8px_-2px_rgba(79,70,229,0.4)]" />
+                )}
+                <Icon size={15} className="relative" />
+              </button>
+            ))}
+          </div>
 
           {authed && (
             <motion.button
@@ -290,7 +324,7 @@ export function LinksBrowser({ links, categories, authed }: Props) {
               <Plus size={17} />
             </motion.button>
           )}
-        </motion.div>
+        </div>
 
         <AnimatePresence initial={false}>
           {tag && (
@@ -324,41 +358,40 @@ export function LinksBrowser({ links, categories, authed }: Props) {
           )
         ) : (
           <>
-            <AnimatePresence initial={false}>
-              {pinned.length > 0 && (
-                <motion.section
-                  key="pinned"
-                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.4, ease: EASE }}
-                  className="space-y-3"
-                >
-                  <h2 className="label flex items-center gap-1.5">
-                    <Pin size={12} className="text-violet-200/70" />
-                    <span className="num">{pinned.length}</span>
-                  </h2>
-                  <motion.div variants={stagger} initial="hidden" animate="show" className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
-                    <AnimatePresence>
-                      {pinned.map((l, i) => (
-                        <Card key={l.id} link={l} idx={i} focused={focusIdx === i} featured
-                              authed={authed} onEdit={setEditing} onDelete={remove} />
-                      ))}
-                    </AnimatePresence>
-                  </motion.div>
-                </motion.section>
-              )}
-            </AnimatePresence>
+            {pinned.length > 0 && (
+              <section key="pinned" className="space-y-3">
+                <h2 className="label flex items-center gap-1.5">
+                  <Pin size={12} className="text-violet-500" />
+                  <span className="num">{pinned.length}</span>
+                </h2>
+                <div className={view === 'list' ? 'space-y-2' : 'grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3'}>
+                  {pinned.map((l, i) => (
+                    <Card key={l.id} link={l} idx={i} focused={focusIdx === i} featured variant={view === 'list' ? 'row' : 'card'}
+                          authed={authed} onEdit={setEditing} onDelete={remove} />
+                  ))}
+                </div>
+              </section>
+            )}
 
             {rest.length > 0 && (
               <section className="space-y-3">
                 {pinned.length > 0 && <div className="hairline" />}
-                <motion.div variants={stagger} initial="hidden" animate="show" className="masonry">
-                  <AnimatePresence>
+                {view === 'masonry' ? (
+                  <Masonry minCol={300}>
                     {rest.map((l, i) => (
                       <Card key={l.id} link={l} idx={pinned.length + i} focused={focusIdx === pinned.length + i}
                             authed={authed} onEdit={setEditing} onDelete={remove} />
                     ))}
-                  </AnimatePresence>
-                </motion.div>
+                  </Masonry>
+                ) : (
+                  <div className={view === 'grid' ? 'grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3' : 'space-y-2'}>
+                    {rest.map((l, i) => (
+                      <Card key={l.id} link={l} idx={pinned.length + i} focused={focusIdx === pinned.length + i}
+                            variant={view === 'list' ? 'row' : 'card'}
+                            authed={authed} onEdit={setEditing} onDelete={remove} />
+                    ))}
+                  </div>
+                )}
               </section>
             )}
           </>
@@ -387,15 +420,14 @@ function RailItem({ active, onClick, children, count, color, icon, title }: {
       title={title}
       className={cn(
         'relative flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-3.5 text-[13px] transition-colors duration-300 lg:w-full lg:px-3',
-        active ? 'text-white' : 'text-indigo-100/50 hover:bg-white/[0.04] hover:text-white/85',
+        active ? 'text-slate-900' : 'text-slate-600 hover:bg-slate-900/4 hover:text-slate-900/85',
       )}
     >
       {active && (
         <motion.span
           layoutId="links-rail-pill"
           transition={SPRING}
-          className="absolute inset-0 rounded-xl border border-indigo-300/30 shadow-[inset_0_1px_0_rgb(255_255_255/0.12),0_0_22px_-8px_rgb(129_140_248/0.7)]"
-          style={{ background: 'var(--grad-soft)' }}
+          className="absolute inset-0 rounded-xl border border-white bg-white/85 shadow-[0_6px_16px_-6px_rgb(79_70_229/0.4),inset_0_1px_0_#fff]"
         />
       )}
       <span className="relative z-10 flex shrink-0 items-center">
@@ -407,12 +439,12 @@ function RailItem({ active, onClick, children, count, color, icon, title }: {
         )}
       </span>
       <span className="relative z-10 truncate whitespace-nowrap">{children}</span>
-      <span className={cn('num relative z-10 ml-auto pl-2 text-[11px]', active ? 'text-white/70' : 'text-indigo-100/30')}>{count}</span>
+      <span className={cn('num relative z-10 ml-auto pl-2 text-[11px]', active ? 'text-slate-900/70' : 'text-slate-500')}>{count}</span>
     </button>
   )
 }
 
-function Card({ link, idx, focused, featured, authed, onEdit, onDelete }: {
+function Card({ link, idx, focused, featured, authed, onEdit, onDelete, variant = 'card' }: {
   link: LinkRow
   idx: number
   focused: boolean
@@ -420,10 +452,13 @@ function Card({ link, idx, focused, featured, authed, onEdit, onDelete }: {
   authed: boolean
   onEdit: (l: LinkRow) => void
   onDelete: (l: LinkRow) => void
+  variant?: 'card' | 'row'
 }) {
   const [ripples, setRipples] = useState<{ id: number; x: number; y: number; s: number }[]>([])
+  const [copied, setCopied] = useState(false)
   const boxRef = useRef<HTMLDivElement>(null)
   const tags = link.tags ?? []
+  const row = variant === 'row'
 
   function ripple(e: React.PointerEvent) {
     const r = boxRef.current?.getBoundingClientRect()
@@ -432,32 +467,66 @@ function Card({ link, idx, focused, featured, authed, onEdit, onDelete }: {
     setRipples((rs) => [...rs, { id: Date.now() + Math.random(), x: e.clientX - r.left, y: e.clientY - r.top, s }])
   }
 
+  async function copy(e: React.MouseEvent) {
+    e.stopPropagation()
+    let ok = true
+    try { await navigator.clipboard.writeText(link.url) } catch { ok = false /* 非 https 下不可用 */ }
+    // 浏览器拒绝写入时别显示「已复制」，否则用户以为复制成功了
+    setCopied(ok)
+    setTimeout(() => setCopied(false), 1400)
+  }
+
+  const actions = (
+    <span className="relative z-[3] flex items-center gap-1 transition-opacity duration-200 group-focus-within/card:opacity-100 group-hover/card:opacity-100 [@media(hover:hover)]:opacity-0">
+      <button
+        onClick={copy}
+        className="flex h-10 w-10 items-center justify-center rounded-lg border border-white bg-white/80 text-slate-500 shadow-sm transition-colors hover:border-indigo-300/60 hover:text-indigo-600 [@media(hover:hover)]:h-8 [@media(hover:hover)]:w-8"
+        aria-label="复制链接" title="复制链接"
+      >
+        {copied ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+      </button>
+      {authed && (
+        <>
+          <button
+            onClick={(e) => { e.stopPropagation(); onEdit(link) }}
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-white bg-white/80 text-slate-500 shadow-sm transition-colors hover:border-indigo-300/60 hover:text-indigo-600 [@media(hover:hover)]:h-8 [@media(hover:hover)]:w-8"
+            aria-label="编辑" title="编辑"
+          >
+            <Pencil size={12} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(link) }}
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-white bg-white/80 text-slate-500 shadow-sm transition-colors hover:border-rose-300 hover:text-rose-600 [@media(hover:hover)]:h-8 [@media(hover:hover)]:w-8"
+            aria-label="删除" title="删除"
+          >
+            <Trash2 size={12} />
+          </button>
+        </>
+      )}
+    </span>
+  )
+
   return (
-    <motion.div
-      variants={item}
-      exit={{ opacity: 0, scale: 0.94, filter: 'blur(4px)', transition: { duration: 0.22 } }}
-      layout="position"
-      transition={{ layout: { duration: 0.45, ease: EASE } }}
-      whileTap={{ scale: 0.97 }}
+    <div
       data-link-idx={idx}
       tabIndex={-1}
-      className="group/card relative outline-none"
+      className="enter group/card relative outline-none"
+      style={{ ['--i' as string]: Math.min(idx, 12) }}
     >
-      <Tilt
-        intensity={featured ? 6 : 7}
-        lift={3}
-        active={featured || focused ? true : undefined}
+      <div
+        data-active={featured || focused ? true : undefined}
         className={cn(
-          'rounded-2xl',
+          'rounded-2xl transition-transform duration-300 ease-[var(--ease-out-expo)] hover:-translate-y-0.5 active:scale-[0.985]',
           (featured || focused) && 'grad-border',
-          focused && 'ring-2 ring-indigo-300/55 ring-offset-2 ring-offset-[#060818]',
+          focused && 'ring-2 ring-indigo-400/50 ring-offset-2 ring-offset-white',
         )}
       >
         <div
           ref={boxRef}
           className={cn(
-            'liquid liquid-hover spotlight relative flex flex-col gap-3 overflow-hidden rounded-2xl p-4',
-            featured && 'bg-gradient-to-br from-sky-400/[0.06] via-indigo-400/[0.05] to-purple-400/[0.08]',
+            'liquid liquid-hover spotlight relative overflow-hidden rounded-2xl',
+            row ? 'flex items-center gap-3 px-3.5 py-2.5' : 'flex flex-col gap-3 p-4',
+            featured && 'bg-gradient-to-br from-sky-400/[0.08] via-indigo-400/[0.06] to-purple-400/[0.1]',
           )}
         >
           {/* 整卡链接 */}
@@ -481,7 +550,7 @@ function Card({ link, idx, focused, featured, authed, onEdit, onDelete }: {
                   className="absolute rounded-full"
                   style={{
                     left: r.x - r.s / 2, top: r.y - r.s / 2, width: r.s, height: r.s,
-                    background: 'radial-gradient(circle, rgb(165 180 252 / 0.35), rgb(192 132 252 / 0.12) 45%, transparent 70%)',
+                    background: 'radial-gradient(circle, rgb(99 102 241 / 0.22), rgb(56 189 248 / 0.1) 45%, transparent 70%)',
                   }}
                   initial={{ scale: 0, opacity: 0.9 }}
                   animate={{ scale: 1, opacity: 0 }}
@@ -492,72 +561,59 @@ function Card({ link, idx, focused, featured, authed, onEdit, onDelete }: {
             </AnimatePresence>
           </span>
 
-          <div className="pointer-events-none relative flex items-start gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.06]">
+          <div className={cn('pointer-events-none relative flex items-start gap-3', row && 'min-w-0 flex-1 items-center')}>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white bg-white/80 shadow-sm">
               <Favicon url={link.url} title={link.title} size={22} radius="rounded-md" />
             </span>
 
             <div className="min-w-0 flex-1">
-              <h3 className="flex items-center gap-1.5 text-[14px] font-medium text-white/90">
-                {link.pinned && !featured && <Pin size={11} className="shrink-0 text-violet-300/80" />}
+              <h3 className="flex items-center gap-1.5 text-[14px] font-medium text-slate-800">
+                {link.pinned && !featured && <Pin size={11} className="shrink-0 text-violet-500" />}
                 <span className="truncate">{link.title}</span>
               </h3>
-              <p className="truncate font-mono text-[11px] text-indigo-100/35">{hostOf(link.url)}</p>
+              <p className="truncate font-mono text-[11px] text-slate-400">{hostOf(link.url)}</p>
             </div>
 
-            <ArrowUpRight
-              size={15}
-              className="shrink-0 text-indigo-100/20 transition-all duration-300 group-hover/card:-translate-y-0.5 group-hover/card:translate-x-0.5 group-hover/card:text-indigo-100/80"
-            />
+            {row && link.description && (
+              <p className="hidden min-w-0 max-w-[40%] flex-1 truncate text-[12.5px] text-slate-500 md:block">{link.description}</p>
+            )}
+
+            {!row && (
+              <ArrowUpRight
+                size={15}
+                className="shrink-0 text-slate-400 transition-all duration-300 group-hover/card:-translate-y-0.5 group-hover/card:translate-x-0.5 group-hover/card:text-indigo-600"
+              />
+            )}
           </div>
 
-          {link.description && (
-            <p className={cn('pointer-events-none relative text-[12.5px] leading-relaxed text-indigo-100/45', featured ? 'line-clamp-2' : 'line-clamp-4')}>
+          {!row && link.description && (
+            <p className={cn('pointer-events-none relative text-[12.5px] leading-relaxed text-slate-500', featured ? 'line-clamp-2' : 'line-clamp-4')}>
               {link.description}
             </p>
           )}
 
-          {(tags.length > 0 || link.clickCount > 0 || authed) && (
-            <div className="relative flex flex-wrap items-center gap-1.5">
-              {tags.slice(0, 3).map((t) => (
-                <span key={t} className="pointer-events-none rounded-md border border-indigo-300/10 bg-indigo-400/[0.06] px-1.5 py-0.5 text-[10.5px] text-indigo-100/50">
-                  <span className="opacity-50">#</span>{t}
-                </span>
-              ))}
-              {tags.length > 3 && (
-                <span className="num pointer-events-none text-[10.5px] text-indigo-100/30">+{tags.length - 3}</span>
-              )}
-
-              <span className="ml-auto flex items-center gap-1">
-                {link.clickCount > 0 && (
-                  <span className="num pointer-events-none flex items-center gap-1 pr-1 text-[10.5px] text-indigo-100/30" title={`${link.clickCount}`}>
-                    <MousePointerClick size={10} />{link.clickCount}
-                  </span>
-                )}
-                {authed && (
-                  <span className="relative z-[3] flex items-center gap-1 transition-opacity duration-200 group-focus-within/card:opacity-100 group-hover/card:opacity-100 [@media(hover:hover)]:opacity-0">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onEdit(link) }}
-                      className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-black/40 backdrop-blur-md transition-colors hover:border-indigo-300/40 hover:bg-indigo-400/15 [@media(hover:hover)]:h-8 [@media(hover:hover)]:w-8"
-                      aria-label="编辑" title="编辑"
-                    >
-                      <Pencil size={12} />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onDelete(link) }}
-                      className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-black/40 backdrop-blur-md transition-colors hover:border-rose-400/50 hover:bg-rose-500/20 [@media(hover:hover)]:h-8 [@media(hover:hover)]:w-8"
-                      aria-label="删除" title="删除"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </span>
-                )}
+          <div className={cn('relative flex items-center gap-1.5', row ? 'shrink-0' : 'flex-wrap')}>
+            {!row && tags.slice(0, 3).map((t) => (
+              <span key={t} className="pointer-events-none rounded-md border border-indigo-300/30 bg-indigo-400/[0.08] px-1.5 py-0.5 text-[10.5px] text-indigo-700/80">
+                <span className="opacity-50">#</span>{t}
               </span>
-            </div>
-          )}
+            ))}
+            {!row && tags.length > 3 && (
+              <span className="num pointer-events-none text-[10.5px] text-slate-400">+{tags.length - 3}</span>
+            )}
+
+            <span className={cn('flex items-center gap-1', !row && 'ml-auto')}>
+              {link.clickCount > 0 && (
+                <span className="num pointer-events-none flex items-center gap-1 pr-1 text-[10.5px] text-slate-400" title={`${link.clickCount}`}>
+                  <MousePointerClick size={10} />{link.clickCount}
+                </span>
+              )}
+              {actions}
+            </span>
+          </div>
         </div>
-      </Tilt>
-    </motion.div>
+      </div>
+    </div>
   )
 }
 

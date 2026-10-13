@@ -1,7 +1,8 @@
 'use client'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Loader2, Save, Trash2, Paperclip, ChevronDown, Pencil, Plus } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { m as motion } from 'framer-motion'
 import { Sheet } from '@/components/ui/primitives'
 import { Field } from '@/components/public/links-editor'
 import { AttachmentDrop } from '@/components/public/attachment-drop'
@@ -17,6 +18,7 @@ const EMPTY = {
 }
 
 export function CompetitionEditor({ open, item, categories, onClose }: Props) {
+  const router = useRouter()
   const [form, setForm] = useState(EMPTY)
   const [atts, setAtts] = useState<{ fileId: number; caption: string; name: string; mime: string; size: number }[]>([])
   const [busy, setBusy] = useState(false)
@@ -63,7 +65,7 @@ export function CompetitionEditor({ open, item, categories, onClose }: Props) {
         return setErr(j.error ?? '保存失败')
       }
       onClose()
-      location.reload()
+      router.refresh()
     } catch {
       setErr('保存失败')
     } finally {
@@ -78,7 +80,7 @@ export function CompetitionEditor({ open, item, categories, onClose }: Props) {
       wide
       title={
         <div className="flex items-center gap-3">
-          <span className="liquid flex h-10 w-10 items-center justify-center rounded-2xl text-indigo-100">
+          <span className="liquid flex h-10 w-10 items-center justify-center rounded-2xl text-slate-700">
             {item ? <Pencil size={16} /> : <Plus size={17} />}
           </span>
           <h2 className="text-lg font-semibold tracking-tight">
@@ -110,7 +112,7 @@ export function CompetitionEditor({ open, item, categories, onClose }: Props) {
 
         {/* 材料上传 */}
         <section>
-          <h4 className="mb-3 flex items-center gap-2 text-indigo-200/50" title="材料">
+          <h4 className="mb-3 flex items-center gap-2 text-indigo-400" title="材料">
             <Paperclip size={13} />
             {atts.length > 0 && <span className="num text-[11px]">{atts.length}</span>}
             <span className="hairline flex-1" />
@@ -123,7 +125,7 @@ export function CompetitionEditor({ open, item, categories, onClose }: Props) {
         </section>
 
         <details open={!item} className="group/more">
-          <summary className="flex min-h-10 cursor-pointer list-none items-center gap-2 text-indigo-200/50 hover:text-white/80 [&::-webkit-details-marker]:hidden"
+          <summary className="flex min-h-10 cursor-pointer list-none items-center gap-2 text-indigo-400 hover:text-slate-900/80 [&::-webkit-details-marker]:hidden"
                    aria-label="更多" title="更多">
             <ChevronDown size={14} className="transition-transform duration-300 group-open/more:rotate-180" />
             <span className="hairline flex-1" />
@@ -151,12 +153,12 @@ export function CompetitionEditor({ open, item, categories, onClose }: Props) {
         </details>
 
         {err && (
-          <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="text-[12.5px] text-rose-300" role="alert">
+          <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="text-[12.5px] text-rose-600" role="alert">
             {err}
           </motion.p>
         )}
 
-        <div className="flex items-center gap-2 border-t border-white/[0.07] pt-5">
+        <div className="flex items-center gap-2 border-t border-slate-900/7 pt-5">
           <button onClick={save} disabled={busy} className="btn btn-primary shine h-10 px-5">
             {busy ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} 保存
           </button>
@@ -166,7 +168,7 @@ export function CompetitionEditor({ open, item, categories, onClose }: Props) {
               onClick={async () => {
                 if (!confirm(`删除「${item.name}」？`)) return
                 await fetch(`/api/competitions/${item.id}`, { method: 'DELETE' })
-                onClose(); location.reload()
+                onClose(); router.refresh()
               }}
               className="btn btn-danger btn-ghost btn-icon ml-auto h-10 w-10"
               aria-label="删除"

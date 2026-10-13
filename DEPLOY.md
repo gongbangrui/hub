@@ -2,6 +2,60 @@
 
 单进程 Node 服务 + SQLite，Nginx 反代。推荐**直接在服务器上构建**。
 
+## 速查
+
+| 目标 | 做什么 | 跳到 |
+| --- | --- | --- |
+| 第一次部署 | 建目录 → 装 Node 22/PM2 → `npm ci && npm run build` → 组装 standalone → 写 `.env` → `pm2 start` → Nginx 反代 | 2 – 9 |
+| 重新部署（服务器上已是旧版） | 备份 → 更新源码 → `bash scripts/deploy.sh` → 验证 | 11.1 – 11.3 |
+| 只改 `.env` | 改完 `pm2 reload personal-hub --update-env` | 4 / 5 |
+| 回滚到上一版 | `mv` 换回 `hub.prev` → `pm2 reload` | 11.4 |
+| 彻底删除 | 停 PM2 → 删站点 → 删目录 → 按需删数据 | 13 |
+
+---
+
+## 0. 全流程一览（首次部署）
+
+```bash
+# 1) 装环境：宝塔装 Node 22 + PM2（第 1 节）
+node -v && npm -v && pm2 -v
+
+# 2) 取源码
+mkdir -p /www/wwwroot/hub-src && cd /www/wwwroot/hub-src
+git clone <你的仓库> .        # 或上传源码包后 tar -xzf hub-src.tar.gz
+
+# 3) 装依赖并构建
+npm ci --include=dev
+npm run build
+
+# 4) 组装 standalone 运行目录
+mkdir -p /www/wwwroot/hub
+cp -a .next/standalone/. /www/wwwroot/hub/
+cp -a .next/static       /www/wwwroot/hub/.next/static
+[ -d public ] && cp -a public /www/wwwroot/hub/public
+cp ecosystem.config.js   /www/wwwroot/hub/
+
+# 5) 写环境变量（第 4 节，务必设 AUTH_SECRET）
+mkdir -p /www/wwwroot/hub-data
+cat > /www/wwwroot/hub/.env <<EOF
+AUTH_SECRET=$(openssl rand -hex 32)
+ADMIN_PASSWORD=换成你的口令
+CRON_KEY=$(openssl rand -hex 16)
+DATA_DIR=/www/wwwroot/hub-data
+EOF
+chmod 600 /www/wwwroot/hub/.env
+
+# 6) 启动
+cd /www/wwwroot/hub
+pm2 start ecosystem.config.js --env production
+pm2 save && pm2 startup
+
+# 7) 配置 Nginx 反代（第 7 节）后验证
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/   # 200
+```
+
+之后每次更新只需第 11 节的一条命令。
+
 ---
 
 ## 1. 环境
@@ -86,10 +140,15 @@ mkdir -p /www/wwwroot/hub && tar -xzf hub.tar.gz -C /www/wwwroot/hub
 
 | 变量 | 说明 |
 | --- | --- |
-| `AUTH_SECRET` | 会话签名密钥，`openssl rand -hex 32` 生成。**必须设置**，否则回落到代码里的默认值。修改后所有已登录会话失效 |
+| `AUTH_SECRET` | 会话签名密钥，`openssl rand -hex 32` 生成。**生产环境必须设置**（缺失或少于 16 位时服务拒绝启动，不再回落默认值）。修改后所有已登录会话失效 |
 | `ADMIN_PASSWORD` | 后台口令，**只在首次启动、库里还没有口令时写入**。之后在后台「设置」修改，再改这里无效 |
 | `CRON_KEY` | 计划任务清理过期文件的凭据，`openssl rand -hex 16` |
 | `DATA_DIR` | 数据目录绝对路径，如 `/www/wwwroot/hub-data`。不在构建产物内，更新不受影响 |
+| `GUEST_VISITOR_QUOTA_GB` | 可选。单个访客同时保留的临时文件总量上限，默认见 `lib/upload.ts` |
+| `GUEST_TOTAL_QUOTA_GB` | 可选。所有访客临时文件占用的站点总上限 |
+| `STORAGE_QUOTA_GB` | 可选。站点总存储上限（首页环形图的分母） |
+
+访客靠签名 Cookie `hub_vid`（有效期 1 年，由 `AUTH_SECRET` 签名）认出自己上传的文件；更换 `AUTH_SECRET` 后访客将看不到更换前上传的文件。缩略图由 `sharp` 生成并缓存在 `DATA_DIR/thumbs`，`sharp` 已在 `next.config.ts` 中外置，需随部署一起安装。
 
 ```bash
 mkdir -p /www/wwwroot/hub-data
@@ -277,6 +336,21 @@ find /www/backup/hub -maxdepth 1 -type d -mtime +14 -exec rm -rf {} +
 
 ## 11. 更新
 
+服务器上跑的是旧版时，按下面三步走：**更新代码 → 装依赖 → 一键部署脚本**。
+
+### 11.1 首次从旧版升级（重要）
+
+本次更新引入了若干**历史数据库没有的列**（`files.uploader_id`、`files.width`、`files.height`）。这些列由 `db/index.ts` 在启动时用 `PRAGMA table_info` 守卫自动补齐，**不需要手动迁移**，但请注意：
+
+- 升级前先备份数据库（第 10 节），万一失败可回滚。
+- 新增列对旧数据是 `NULL`：旧文件 `uploader_id` 为空，因此**旧访客文件不会出现在任何访客的「我的临时文件」里**，也不再能被访客删除；它们会继续按过期时间被清理。管理员不受影响。
+- 本次部署**必须设齐 `AUTH_SECRET`（≥16 位）和 `ADMIN_PASSWORD`**，否则生产环境会拒绝启动（旧版是回落到默认值）。见第 4 节。
+- 新增可选配额变量 `GUEST_VISITOR_QUOTA_GB` / `GUEST_TOTAL_QUOTA_GB` / `STORAGE_QUOTA_GB`，不设则用默认值。
+- 缩略图现在依赖 `sharp`；它已写进 `package.json`，`npm ci` 会装上。`sharp` 的预编译二进制与平台绑定，**若在本地构建再上传，务必确认平台一致**，否则缩略图失败只是回退原图（不会 502），但仍建议在服务器上构建。
+- 旧的 `.env` 里若没有 `DATA_DIR`，升级时数据目录会被新目录覆盖（见 11.4 的注意事项）。
+
+### 11.2 更新到新版本
+
 ```bash
 # 源码在 git 里
 bash /www/wwwroot/hub-src/scripts/deploy.sh
@@ -287,13 +361,39 @@ bash /www/wwwroot/hub-src/scripts/deploy.sh /root/hub-src.tar.gz
 
 脚本流程：`git pull`/解压 → `npm ci` → `npm run build` → 拷贝 `.next/static`、`public`、`ecosystem.config.js` 与现有 `.env` 组装新目录 → 自检 better-sqlite3 → 原子切换 `/www/wwwroot/hub` → `pm2 reload` → `pm2 save`。
 
-上一版保留在 `/www/wwwroot/hub.prev`，回滚：
+**先看这一步**：如果源码目录是用 `git clone` 拉的，先 `git -C /www/wwwroot/hub-src status` 确认没有本地改动，否则 `git pull --ff-only` 会失败。本地构建再上传的场景，源码包用 `tar -czf hub-src.tar.gz --exclude=node_modules --exclude=.next .` 打包，别把 `.next` 和 `node_modules` 打进去。
+
+### 11.3 验证
 
 ```bash
-mv /www/wwwroot/hub /www/wwwroot/hub.bad && mv /www/wwwroot/hub.prev /www/wwwroot/hub && pm2 reload personal-hub
+pm2 ls                                  # personal-hub 应为 online
+pm2 logs personal-hub --lines 50        # 无报错
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/    # 200
 ```
 
-路径不同时用环境变量覆盖：`SRC_DIR=... APP_DIR=... PM2_NAME=... bash scripts/deploy.sh`。
+浏览器打开首页确认样式正常；中转站页应出现「我的临时文件」分区与取件码输入框（旧版没有）。
+
+### 11.4 回滚
+
+上一版保留在 `/www/wwwroot/hub.prev`：
+
+```bash
+mv /www/wwwroot/hub /www/wwwroot/hub.bad
+mv /www/wwwroot/hub.prev /www/wwwroot/hub
+pm2 reload personal-hub
+```
+
+如果失败发生在构建阶段（还没切换目录），源码目录里的旧版本仍在，直接改回去重跑即可。数据库层面：新增的列不影响旧代码读（旧代码只是不查它们），**一般情况下不需要回滚数据库**；如果你在升级后大量使用了新功能，回滚应用前先用备份还原数据库。
+
+> ⚠️ 没有设 `DATA_DIR` 时数据在 `/www/wwwroot/hub/data`，脚本切换目录会把 `data` 搬到新目录，但 `.prev` 里的旧 `data` 可能残留 —— 这会导致回滚后看到的是旧数据。生产环境务必设 `DATA_DIR` 到独立路径（见第 2、4 节）。
+
+### 11.5 路径不同时的自定义
+
+```bash
+SRC_DIR=/opt/hub-src APP_DIR=/opt/hub PM2_NAME=myhub KEEP_PREV=0 bash scripts/deploy.sh
+```
+
+`KEEP_PREV=0` 部署后删除 `.prev`，不留回滚版本。
 
 ---
 
@@ -334,3 +434,85 @@ mv /www/wwwroot/hub /www/wwwroot/hub.bad && mv /www/wwwroot/hub.prev /www/wwwroo
 
 **计划任务返回 403**
 - `key` 与 `.env` 中 `CRON_KEY` 不一致，或 `CRON_KEY` 为空；改 `.env` 后需 `pm2 reload personal-hub --update-env`。
+
+**访客上传后看不到自己的文件（升级后仍出现）**
+- 检查是否真的升到了新版：`pm2 logs` 里 `GET /api/files/[id]/thumb` 之类的日志说明是新版。
+- 访客身份靠 `hub_vid` Cookie（由 `AUTH_SECRET` 签名）。若部署后换过 `AUTH_SECRET`，旧 Cookie 全部失效，访客会「看不到之前传的文件」——这是预期行为，重新上传即可。
+- 浏览器开了「退出时清除 Cookie」或无痕模式，每次都是新访客，也会看不到。
+
+**缩略图不显示 / 一律是原图**
+- `sharp` 没装上或平台不匹配：`cd /www/wwwroot/hub && node -e "require('sharp');console.log('ok')"`。
+- 不复用旧的 `node_modules`：`sharp` 必须随 `npm ci` 一起装，手动拷贝要带上 `@img/` 目录。
+
+---
+
+## 13. 删除 / 下线
+
+按「先停服务 → 再删站点 → 最后删文件」的顺序做，避免 Nginx 反代到一个已经没了的端口。
+
+### 13.1 停止并移除 PM2 进程
+
+```bash
+pm2 stop personal-hub
+pm2 delete personal-hub
+pm2 save                                   # 同步进程列表，否则重启后又会被拉起来
+```
+
+如果用宝塔「PM2 管理器」界面添加的，也在那个界面里点「删除」。检查是否真的没了：
+
+```bash
+pm2 ls                                     # 列表里不应还有 personal-hub
+ss -ltnp | grep ':3000'                    # 不应再有监听
+```
+
+### 13.2 删除宝塔站点
+
+宝塔「网站 → 找到本站 → 删除」。删除时弹出的选项：
+
+- **不要勾**「删除网站目录」（目录我们手动删，且要注意 `DATA_DIR` 在站点目录之外）。
+- 若勾了「删除数据库」，与 SQLite 无关，不影响本站数据。
+- 若站点开了 SSL，「网站 → SSL」里的证书一并清理。
+- 若配置过反向代理，一并删除（第 7 节那份手写的 `map` / `location` 会随站点删除）。
+
+### 13.3 删除目录
+
+```bash
+# 运行目录与源码目录
+rm -rf /www/wwwroot/hub
+rm -rf /www/wwwroot/hub.prev
+rm -rf /www/wwwroot/hub.bad
+rm -rf /www/wwwroot/hub-src
+
+# 数据目录（数据库 + 上传文件 + 分片）—— 删了就没了，先确认已备份
+rm -rf /www/wwwroot/hub-data
+
+# 备份（若做过服务器定时备份）
+rm -rf /www/backup/hub
+```
+
+> `rm -rf` 不可恢复。执行前先 `ls -la /www/wwwroot/hub-data` 确认里面确实是你想删的数据；要留一份就先 `tar -czf /root/hub-data-$(date +%F).tar.gz -C /www/wwwroot/hub-data .`。
+
+### 13.4 清理计划任务与开机自启
+
+- 宝塔「计划任务」：删掉第 9 节的过期文件清理任务、第 10 节的备份任务。
+- 开机自启：`pm2 unstartup`（按提示执行它打印的命令），或直接不管 —— 进程已 `pm2 delete`，`pm2 save` 后不会再有。
+
+### 13.5 验证删除干净
+
+```bash
+pm2 ls | grep personal-hub || echo 'pm2 已清理'
+ss -ltnp | grep ':3000'   || echo '端口已释放'
+curl -s -o /dev/null -w '%{http_code}\n' https://你的域名/   # 应为 404 或连接失败
+ls /www/wwwroot | grep -E '^hub' || echo '目录已清理'
+```
+
+### 13.6 只想临时下线（保留数据）
+
+不要 `rm -rf`，改用：
+
+```bash
+pm2 stop personal-hub            # 停服务，站点仍在但 502
+# 或在宝塔「网站」里直接「停用」该站点，Nginx 会返回 503
+```
+
+恢复：`pm2 start personal-hub` 或重新启用站点。

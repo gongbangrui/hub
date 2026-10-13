@@ -1,10 +1,10 @@
 'use client'
 import { useRef, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m as motion, AnimatePresence } from 'framer-motion'
 import { UploadCloud, X, Loader2, FileText, GripVertical } from 'lucide-react'
 import { cn, formatBytes, fileKind } from '@/lib/utils'
 import { fileUrl } from '@/lib/file-url'
-import { EASE } from '@/components/ui/fx'
+import { EASE } from '@/lib/motion'
 
 export type AttItem = {
   fileId: number
@@ -55,7 +55,7 @@ export function AttachmentDrop({ items, onChange, accept }: {
       for (const file of files) {
         try {
           const { uploadFileDirect } = await import('@/lib/upload-direct')
-          const out = await uploadFileDirect(file)
+          const out = await uploadFileDirect(file, undefined, { purpose: 'attachment' })
           if (!out?.fileId) continue
           itemsRef.current = [
             ...itemsRef.current,
@@ -107,19 +107,19 @@ export function AttachmentDrop({ items, onChange, accept }: {
           dragging && 'bg-indigo-400/[0.07]',
         )}
       >
-        <span aria-hidden className="pointer-events-none absolute inset-2 rounded-xl border border-dashed border-indigo-200/15 transition-colors duration-300 group-hover:border-indigo-200/30" />
+        <span aria-hidden className="pointer-events-none absolute inset-2 rounded-xl border border-dashed border-indigo-300/30 transition-colors duration-300 group-hover:border-indigo-300/45" />
         <motion.span
           animate={dragging ? { scale: 1.15, y: -2 } : { scale: 1, y: 0 }}
           transition={{ type: 'spring', stiffness: 320, damping: 22 }}
-          className={cn('relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05]', dragging && 'pulse-ring')}
+          className={cn('relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-900/10 bg-slate-900/5', dragging && 'pulse-ring')}
         >
           {uploading ? (
-            <Loader2 size={17} className="animate-spin text-sky-300" />
+            <Loader2 size={17} className="animate-spin text-sky-600" />
           ) : (
-            <UploadCloud size={17} className={cn('text-indigo-100/55 transition-colors group-hover:text-sky-200', dragging && 'text-sky-200')} />
+            <UploadCloud size={17} className={cn('text-slate-600 transition-colors group-hover:text-sky-600', dragging && 'text-sky-600')} />
           )}
         </motion.span>
-        {items.length > 0 && <span className="num relative text-[11px] text-indigo-100/40">{items.length}</span>}
+        {items.length > 0 && <span className="num relative text-[11px] text-slate-500">{items.length}</span>}
         <input
           ref={inputRef}
           type="file"
@@ -153,20 +153,20 @@ export function AttachmentDrop({ items, onChange, accept }: {
                   onDrop={() => reorder(keyOf(it))}
                   className="liquid liquid-hover flex items-center gap-2.5 rounded-xl py-1.5 pl-2 pr-1"
                 >
-                  <GripVertical size={13} className="shrink-0 cursor-grab text-indigo-100/25" aria-hidden />
+                  <GripVertical size={13} className="shrink-0 cursor-grab text-slate-500" aria-hidden />
 
                   {kind === 'image' ? (
                     <img src={fileUrl({ id: it.fileId }, true)} alt="" loading="lazy"
-                         className="h-9 w-9 shrink-0 rounded-lg border border-white/[0.07] object-cover" />
+                         className="h-9 w-9 shrink-0 rounded-lg border border-slate-900/7 object-cover" />
                   ) : (
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.035]">
-                      <FileText size={14} className="text-indigo-100/45" />
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-900/7 bg-slate-900/4">
+                      <FileText size={14} className="text-slate-500" />
                     </span>
                   )}
 
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[12.5px] text-white/85" title={it.name}>{it.name}</p>
-                    <p className="num text-[10px] text-indigo-100/35">{formatBytes(it.size)}</p>
+                    <p className="truncate text-[12.5px] text-slate-900/85" title={it.name}>{it.name}</p>
+                    <p className="num text-[10px] text-slate-500">{formatBytes(it.size)}</p>
                   </div>
 
                   <input
@@ -179,7 +179,7 @@ export function AttachmentDrop({ items, onChange, accept }: {
                     placeholder="#"
                     aria-label="说明"
                     title="说明"
-                    className="h-9 w-20 shrink-0 rounded-lg border border-white/[0.07] bg-white/[0.03] px-2 text-[11.5px] outline-none transition-colors placeholder:text-indigo-100/30 focus:border-indigo-300/50 sm:w-28"
+                    className="h-9 w-20 shrink-0 rounded-lg border border-slate-900/7 bg-slate-900/3 px-2 text-[11.5px] outline-none transition-colors placeholder:text-slate-500 focus:border-indigo-300/50 sm:w-28"
                   />
 
                   <button

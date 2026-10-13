@@ -1,64 +1,90 @@
-import { db, schema } from '@/db'
+import { Megaphone, History, Keyboard } from 'lucide-react'
 import { isAuthed, getSetting } from '@/lib/auth'
-import { sql, desc, eq, and, isNull, notInArray } from 'drizzle-orm'
 import { dirSize, UPLOAD_DIR } from '@/lib/storage'
-import { Hero } from '@/components/public/hero'
-import { ShellBento } from '@/components/public/shell-bento'
+import { STORAGE_QUOTA } from '@/lib/upload'
+import { getHomeData } from '@/lib/stats'
+import { Hero } from '@/components/public/home/hero'
+import { Stats } from '@/components/public/home/stats'
+import { Bento } from '@/components/public/home/bento'
+import { Timeline } from '@/components/public/home/timeline'
+import { QuickText } from '@/components/public/home/quick-text'
 
 export const dynamic = 'force-dynamic'
 
-async function count(table: any) {
-  const r = await db.select({ n: sql<number>`count(*)` }).from(table).get()
-  return r?.n ?? 0
-}
-
-/** 与 /files 一致：访客只看长期公开、未被竞赛/论文引用的文件 */
-function guestVisible() {
-  return and(
-    isNull(schema.files.expiresAt),
-    notInArray(schema.files.id, db.select({ id: schema.attachments.fileId }).from(schema.attachments)),
+function Section({ icon: Icon, title, children, className, i = 0, id }: {
+  icon: React.ElementType; title: string; children: React.ReactNode; className?: string; i?: number; id?: string
+}) {
+  return (
+    <section id={id} className={className}>
+      <h2 className="enter mb-4 flex items-center gap-2 text-[15px] font-semibold text-slate-800" style={{ ['--i' as string]: i }}>
+        <Icon size={16} className="text-indigo-500" /> {title}
+      </h2>
+      {children}
+    </section>
   )
 }
 
 export default async function Home() {
   const authed = await isAuthed()
-  const [hero, title] = await Promise.all([getSetting('hero_line'), getSetting('site_title')])
-
-  const [linkCount, openFiles, compCount, paperCount, recent, publicRecent] = await Promise.all([
-    count(schema.links),
-    db.select({ n: sql<number>`count(*)`, s: sql<number>`coalesce(sum(size),0)` }).from(schema.files)
-      .where(authed ? undefined : guestVisible()).get(),
-    authed ? count(schema.competitions) : Promise.resolve(0),
-    authed ? count(schema.papers) : Promise.resolve(0),
-    db.select().from(schema.files)
-      .where(and(eq(schema.files.owner, 'admin'), authed ? undefined : guestVisible()))
-      .orderBy(desc(schema.files.createdAt)).limit(4),
-    db.select().from(schema.links).orderBy(desc(schema.links.clickCount)).limit(6),
+  const [line, title, subtitle, notice] = await Promise.all([
+    getSetting('hero_line'), getSetting('site_title'), getSetting('site_subtitle'), getSetting('announcement'),
   ])
-
-  const total = dirSize(UPLOAD_DIR)
+  const d = getHomeData(authed)
+  const used = dirSize(UPLOAD_DIR)
+  const now = Date.now()
 
   return (
-    <div className="space-y-10 md:space-y-14">
-      <Hero line={hero ?? ''} title={title ?? 'Foliage'} />
-      <ShellBento
+    <div className="space-y-12 md:space-y-16">
+      {notice?.trim() && (
+        <div className="enter liquid flex items-start gap-3 rounded-2xl px-4 py-3 text-[13.5px] text-slate-700">
+          <Megaphone size={16} className="mt-0.5 shrink-0 text-violet-500" />
+          <span className="whitespace-pre-line">{notice.trim()}</span>
+        </div>
+      )}
+
+      <Hero
+        title={title ?? 'Foliage'}
+        line={line ?? ''}
+        subtitle={subtitle ?? ''}
+        links={d.links.top.map((l) => ({ id: l.id, title: l.title, url: l.url }))}
+        files={d.files.recent.map((f) => ({ id: f.id, name: !authed && f.sharePassword ? '••••••' : f.originalName, size: f.size }))}
+        counts={{ links: d.links.count, files: d.files.count, used }}
+      />
+
+      <Stats
+        links={{ count: d.links.count, week: d.links.week }}
+        files={{ count: d.files.count, bytes: d.files.bytes }}
+        used={used}
+        quota={STORAGE_QUOTA()}
+        trend={d.trend}
+        clicks={d.links.clicks}
+      />
+
+      <Bento
         data={{
           authed,
-          links: {
-            count: linkCount,
-            top: publicRecent.map((l) => ({ id: l.id, title: l.title, url: l.url })),
-          },
+          links: { count: d.links.count, top: d.links.top.map((l) => ({ id: l.id, title: l.title, url: l.url })) },
           files: {
-            count: openFiles?.n ?? 0,
-            // 访客：加锁文件不露名
-            recent: recent.map((f) => ({ id: f.id, name: !authed && f.sharePassword ? '••••••' : f.originalName, size: f.size })),
-            used: total,
-            quota: 10 * 1024 ** 3,
+            count: d.files.count,
+            recent: d.files.recent.map((f) => ({ id: f.id, name: !authed && f.sharePassword ? '••••••' : f.originalName, size: f.size })),
           },
-          competitions: compCount,
-          papers: paperCount,
+          competitions: d.competitions,
+          papers: d.papers,
         }}
       />
+
+      <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
+        <Section icon={History} title="最近动态">
+          <div className="liquid rounded-3xl p-3 sm:p-4">
+            <Timeline items={d.activity} now={now} />
+          </div>
+        </Section>
+        <div className="space-y-6">
+          <Section icon={Keyboard} title="快传一段文字" i={1} id="quick">
+            <QuickText />
+          </Section>
+        </div>
+      </div>
     </div>
   )
 }

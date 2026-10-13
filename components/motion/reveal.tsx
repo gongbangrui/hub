@@ -1,5 +1,5 @@
 'use client'
-import { motion, type Variants } from 'framer-motion'
+import { m as motion, type Variants } from 'framer-motion'
 
 const EASE = [0.22, 1, 0.36, 1] as const
 

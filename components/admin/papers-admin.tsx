@@ -1,14 +1,15 @@
 'use client'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m as motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, Pencil, Trash2, ExternalLink, Copy, Check, Paperclip, FileText, Download,
   Quote, FileSpreadsheet, BookOpen, ChevronDown, ArrowUp, ArrowDown, ChevronsUpDown, CircleDot, FilterX, Filter,
 } from 'lucide-react'
 import { cn, fileKind } from '@/lib/utils'
 import { EmptyState, StatusBadge, STATUSES } from '@/components/ui/primitives'
-import { PageTitle, Magnetic, EASE } from '@/components/ui/fx'
+import { PageTitle } from '@/components/ui/page'
+import { Magnetic, EASE } from '@/components/ui/fx'
 import { PaperEditor } from '@/components/public/paper-editor'
 import { buildBibtex, type PaperItem } from '@/components/public/papers-view'
 import {
@@ -23,7 +24,7 @@ const STATUS_ORDER: Status[] = ['draft', 'submitted', 'accepted', 'published']
 const TYPE_LABEL: Record<string, string> = { journal: '期刊', conference: '会议', preprint: '预印本' }
 
 const DOT: Record<Status, string> = {
-  draft: 'rgb(255 255 255 / 0.45)',
+  draft: 'rgb(100 116 139 / 0.5)',
   submitted: '#38bdf8',
   accepted: '#a78bfa',
   published: '#34d399',
@@ -187,7 +188,7 @@ export function PapersAdmin({ items, startNew = false }: { items: PaperItem[]; s
                   onClick={() => setStatus(k)}
                   className={cn(
                     'relative inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] transition-colors duration-200 xl:w-full xl:justify-between xl:rounded-xl xl:px-2.5',
-                    on ? 'border-indigo-300/25 text-white' : 'border-white/[0.07] bg-white/[0.025] text-indigo-100/55 hover:border-indigo-300/20 hover:text-white/85',
+                    on ? 'border-indigo-300/25 text-slate-900' : 'border-slate-900/7 bg-slate-900/2 text-slate-600 hover:border-indigo-300/20 hover:text-slate-900/85',
                   )}
                 >
                   {on && (
@@ -201,7 +202,7 @@ export function PapersAdmin({ items, startNew = false }: { items: PaperItem[]; s
                     {k !== 'all' && <span className="h-1.5 w-1.5 rounded-full" style={{ background: DOT[k], boxShadow: `0 0 8px ${DOT[k]}` }} />}
                     {k === 'all' ? '全部' : STATUSES[k].label}
                   </span>
-                  <span className={cn('num relative', on ? 'text-white/60' : 'text-indigo-100/35')}>{counts[k] ?? 0}</span>
+                  <span className={cn('num relative', on ? 'text-slate-900/60' : 'text-slate-500')}>{counts[k] ?? 0}</span>
                 </button>
               )
             })}
@@ -210,7 +211,7 @@ export function PapersAdmin({ items, startNew = false }: { items: PaperItem[]; s
           {/* 状态分布 */}
           {base.length > 0 && (
             <div className="liquid mt-3 hidden rounded-xl p-3 xl:block">
-              <div className="flex h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
+              <div className="flex h-1.5 overflow-hidden rounded-full bg-slate-900/5">
                 {STATUS_ORDER.map((s) => (
                   <motion.span
                     key={s}
@@ -223,9 +224,9 @@ export function PapersAdmin({ items, startNew = false }: { items: PaperItem[]; s
                   />
                 ))}
               </div>
-              <div className="mt-2.5 flex items-center justify-between text-[11px] text-indigo-100/40">
+              <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-500">
                 <span className="flex items-center gap-1" title="附件"><Paperclip size={11} /><span className="num">{base.reduce((n, p) => n + p.attachments.length, 0)}</span></span>
-                <span className="flex items-center gap-1" title="已发表"><Check size={11} className="text-emerald-300/70" /><span className="num">{Math.round(((counts.published ?? 0) / base.length) * 100)}%</span></span>
+                <span className="flex items-center gap-1" title="已发表"><Check size={11} className="text-emerald-600" /><span className="num">{Math.round(((counts.published ?? 0) / base.length) * 100)}%</span></span>
               </div>
             </div>
           )}
@@ -259,7 +260,7 @@ export function PapersAdmin({ items, startNew = false }: { items: PaperItem[]; s
                 </motion.button>
               )}
             </AnimatePresence>
-            <span className="num ml-auto pr-1.5 text-[12px] text-indigo-100/35">{filtered.length} / {items.length}</span>
+            <span className="num ml-auto pr-1.5 text-[12px] text-slate-500">{filtered.length} / {items.length}</span>
           </Toolbar>
 
           {filtered.length === 0 ? (
@@ -326,12 +327,12 @@ export function PapersAdmin({ items, startNew = false }: { items: PaperItem[]; s
                 key={s}
                 onClick={() => (s === pop.current ? setPop(null) : changeStatus(pop.ids, s))}
                 className={cn(
-                  'flex min-h-10 w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-white/[0.07]',
+                  'flex min-h-10 w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-slate-900/7',
                   pop.current === s && 'bg-[var(--grad-soft)]',
                 )}
               >
                 <StatusBadge status={s} />
-                {pop.current === s && <Check size={12} className="text-sky-300" />}
+                {pop.current === s && <Check size={12} className="text-sky-600" />}
                 <span className="kbd ml-auto">{i + 1}</span>
               </button>
             ))}
@@ -375,18 +376,18 @@ function StatusButton({ status, onStatus, className }: { status: string; onStatu
       aria-label="改状态" title="改状态"
     >
       <StatusBadge status={status} />
-      <ChevronDown size={11} className="text-white/25 transition-colors group-hover/s:text-sky-200" />
+      <ChevronDown size={11} className="text-slate-900/40 transition-colors group-hover/s:text-sky-600" />
     </button>
   )
 }
 
 function AttCount({ p }: { p: PaperItem }) {
   return p.attachments.length > 0 ? (
-    <span className="inline-flex items-center gap-1 text-[12px] text-white/50">
-      {hasPdfOf(p) ? <FileText size={11} className="text-violet-300/70" /> : <Paperclip size={11} className="text-white/30" />}
+    <span className="inline-flex items-center gap-1 text-[12px] text-slate-900/50">
+      {hasPdfOf(p) ? <FileText size={11} className="text-violet-600" /> : <Paperclip size={11} className="text-slate-900/40" />}
       <span className="num">{p.attachments.length}</span>
     </span>
-  ) : <span className="num text-[12px] text-white/18">0</span>
+  ) : <span className="num text-[12px] text-slate-900/40">0</span>
 }
 
 function PaperRow({ p, selected, onToggle, onEdit, onStatus, onDelete }: RowProps) {
@@ -396,31 +397,31 @@ function PaperRow({ p, selected, onToggle, onEdit, onStatus, onDelete }: RowProp
 
       <Td className="max-w-[300px] xl:max-w-[340px] 2xl:max-w-[380px]">
         <div className="flex items-center gap-1.5">
-          <span className="truncate text-white/88 transition-colors group-hover:text-white" title={p.title}>{p.title}</span>
+          <span className="truncate text-slate-900/88 transition-colors group-hover:text-slate-900" title={p.title}>{p.title}</span>
           {p.url && <OpenLink url={p.url} />}
         </div>
         {(!!p.authors?.length || p.venue) && (
-          <p className="mt-0.5 truncate text-[11.5px] text-indigo-100/35">
+          <p className="mt-0.5 truncate text-[11.5px] text-slate-500">
             {p.authors?.join(' · ')}
-            {p.venue && <span className="2xl:hidden">{p.authors?.length ? ' — ' : ''}<span className="text-white/45">{p.venue}</span></span>}
+            {p.venue && <span className="2xl:hidden">{p.authors?.length ? ' — ' : ''}<span className="text-slate-900/45">{p.venue}</span></span>}
           </p>
         )}
       </Td>
 
       <Td className="hidden max-w-[200px] 2xl:table-cell">
-        <p className="truncate text-[12.5px] text-white/60" title={p.venue ?? undefined}>{p.venue || <span className="text-white/20">—</span>}</p>
+        <p className="truncate text-[12.5px] text-slate-900/60" title={p.venue ?? undefined}>{p.venue || <span className="text-slate-900/40">—</span>}</p>
         {(p.level || p.type) && (
           <p className="mt-0.5 flex items-center gap-2 text-[10.5px]">
-            {p.type && <span className="text-indigo-100/40">{TYPE_LABEL[p.type] ?? p.type}</span>}
-            {p.level && <span className="text-amber-200/60">{p.level}</span>}
+            {p.type && <span className="text-slate-500">{TYPE_LABEL[p.type] ?? p.type}</span>}
+            {p.level && <span className="text-amber-700">{p.level}</span>}
           </p>
         )}
       </Td>
 
       <Td><StatusButton status={p.status} onStatus={onStatus} /></Td>
 
-      <Td className="num whitespace-nowrap text-[12px] text-white/45">
-        {p.pubDate || <span className="text-white/20">—</span>}
+      <Td className="num whitespace-nowrap text-[12px] text-slate-900/45">
+        {p.pubDate || <span className="text-slate-900/40">—</span>}
       </Td>
 
       <Td className="text-right"><AttCount p={p} /></Td>
@@ -458,14 +459,14 @@ function PaperCard({ p, selected, onToggle, onEdit, onStatus, onDelete, index }:
           <Checkbox checked={selected} onChange={onToggle} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 text-[13.5px] leading-snug text-white/88">{p.title}</p>
-          {!!p.authors?.length && <p className="mt-1 truncate text-[11.5px] text-indigo-100/35">{p.authors.join(' · ')}</p>}
-          {p.venue && <p className="mt-0.5 truncate text-[11.5px] text-white/45">{p.venue}</p>}
+          <p className="line-clamp-2 text-[13.5px] leading-snug text-slate-900/88">{p.title}</p>
+          {!!p.authors?.length && <p className="mt-1 truncate text-[11.5px] text-slate-500">{p.authors.join(' · ')}</p>}
+          {p.venue && <p className="mt-0.5 truncate text-[11.5px] text-slate-900/45">{p.venue}</p>}
         </div>
       </div>
-      <div className="flex items-center gap-1 border-t border-white/[0.06] px-2 py-1.5">
+      <div className="flex items-center gap-1 border-t border-slate-900/6 px-2 py-1.5">
         <StatusButton status={p.status} onStatus={onStatus} className="min-h-10 px-1" />
-        <span className="num ml-1 text-[11.5px] text-white/40">{p.pubDate}</span>
+        <span className="num ml-1 text-[11.5px] text-slate-900/40">{p.pubDate}</span>
         <span className="ml-auto mr-1"><AttCount p={p} /></span>
         {p.url && <OpenLink url={p.url} large />}
         {p.doi && <CopyDoi doi={p.doi} large />}
@@ -484,7 +485,7 @@ function OpenLink({ url, large }: { url: string; large?: boolean }) {
       href={url} target="_blank" rel="noreferrer"
       onClick={(e) => e.stopPropagation()}
       className={cn(
-        'flex shrink-0 items-center justify-center rounded-lg text-white/30 transition-colors hover:text-sky-300',
+        'flex shrink-0 items-center justify-center rounded-lg text-slate-900/40 transition-colors hover:text-sky-600',
         large ? 'h-10 w-10' : 'p-0.5',
       )}
       aria-label="原文" title="原文"
@@ -505,10 +506,10 @@ function SortTh({ k, sort, onSort, children, className, align }: {
       <button
         onClick={() => onSort(k)}
         className={cn('inline-flex items-center gap-1 uppercase tracking-[inherit] transition-colors',
-          active ? 'text-sky-200' : 'hover:text-white/65')}
+          active ? 'text-sky-600' : 'hover:text-slate-900/65')}
       >
         {children}
-        <Icon size={10} className={active ? 'text-sky-300' : 'opacity-40'} />
+        <Icon size={10} className={active ? 'text-sky-600' : 'opacity-40'} />
       </button>
     </Th>
   )
@@ -538,7 +539,7 @@ function CopyDoi({ doi, large }: { doi: string; large?: boolean }) {
           transition={{ duration: 0.2, ease: EASE }}
           className="flex"
         >
-          {done ? <Check size={large ? 14 : 12} className="text-emerald-300" /> : <Copy size={large ? 14 : 12} />}
+          {done ? <Check size={large ? 14 : 12} className="text-emerald-600" /> : <Copy size={large ? 14 : 12} />}
         </motion.span>
       </AnimatePresence>
     </button>
@@ -563,7 +564,7 @@ function ArmButton({ onFire, disabled, large }: { onFire: () => void; disabled?:
       className={cn(
         'btn btn-danger p-0',
         large ? 'h-10 w-10' : 'btn-sm btn-icon h-8 w-8',
-        armed ? 'border-rose-400/45 bg-rose-500/20 text-rose-200 shadow-[0_0_18px_-4px_rgb(244_63_94/0.7)]' : 'btn-ghost',
+        armed ? 'border-rose-400/45 bg-rose-500/20 text-rose-600 shadow-[0_0_18px_-4px_rgb(244_63_94/0.7)]' : 'btn-ghost',
       )}
       aria-label={armed ? '确认删除' : '删除'}
       title={armed ? '删除？' : '删除'}
@@ -586,8 +587,8 @@ function ArmButton({ onFire, disabled, large }: { onFire: () => void; disabled?:
 
 function MenuItem({ icon, onClick, children }: { icon: React.ReactNode; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick} className="flex min-h-10 w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-left text-[13px] text-white/75 transition-colors hover:bg-white/[0.07] hover:text-white">
-      <span className="text-indigo-200/60">{icon}</span>
+    <button onClick={onClick} className="flex min-h-10 w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-left text-[13px] text-slate-900/75 transition-colors hover:bg-slate-900/7 hover:text-slate-900">
+      <span className="text-indigo-500">{icon}</span>
       {children}
     </button>
   )
@@ -662,7 +663,7 @@ function Popover({ anchor, onClose, children, width = 196 }: {
           animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
           exit={{ opacity: 0, scale: 0.97, filter: 'blur(4px)' }}
           transition={{ duration: 0.2, ease: EASE }}
-          className="liquid-strong z-[65] overflow-hidden rounded-2xl shadow-[0_18px_50px_-12px_rgb(0_0_0/0.8)]"
+          className="liquid-strong z-[65] overflow-hidden rounded-2xl shadow-[0_18px_50px_-12px_rgb(40_70_160/0.45)]"
         >
           <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-indigo-300/60 to-transparent" />
           {children}

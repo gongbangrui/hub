@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { jwtVerify } from 'jose/jwt/verify'
+import { authSecretBytes } from '@/lib/secret'
 
 const COOKIE = 'hub_session'
 
@@ -7,7 +8,7 @@ async function authed(req: NextRequest) {
   const token = req.cookies.get(COOKIE)?.value
   if (!token) return false
   try {
-    await jwtVerify(token, new TextEncoder().encode(process.env.AUTH_SECRET || 'dev-secret-change-me'))
+    await jwtVerify(token, authSecretBytes(), { algorithms: ['HS256'] })
     return true
   } catch { return false }
 }

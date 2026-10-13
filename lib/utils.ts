@@ -6,9 +6,9 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatBytes(n: number) {
-  if (!n) return '0 B'
+  if (!Number.isFinite(n) || n <= 0) return '0 B'
   const u = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(n) / Math.log(1024))
+  const i = Math.min(u.length - 1, Math.max(0, Math.floor(Math.log(n) / Math.log(1024))))
   return `${(n / 1024 ** i).toFixed(i === 0 ? 0 : 1)} ${u[i]}`
 }
 
@@ -20,14 +20,14 @@ export function faviconOf(url: string) {
   try { return `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=64` } catch { return '' }
 }
 
-// 浅蓝 → 紫 的同色系渐变（首字母头像兜底色）
+// 站点图标的首字母兜底色(白字,需要足够深)
 const TONES = [
-  'from-sky-300/90 to-blue-500/90',
-  'from-indigo-300/90 to-violet-500/90',
-  'from-violet-300/90 to-purple-500/90',
-  'from-blue-300/90 to-indigo-500/90',
-  'from-sky-200/90 to-indigo-400/90',
-  'from-purple-300/90 to-indigo-500/90',
+  'from-sky-400 to-blue-500',
+  'from-indigo-400 to-violet-500',
+  'from-violet-400 to-purple-500',
+  'from-blue-400 to-indigo-500',
+  'from-cyan-400 to-sky-500',
+  'from-teal-400 to-cyan-500',
 ]
 export function toneOf(seed: string) {
   let h = 0

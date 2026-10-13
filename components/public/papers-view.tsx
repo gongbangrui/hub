@@ -1,6 +1,6 @@
 'use client'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
+import { m as motion, AnimatePresence, LayoutGroup } from 'framer-motion'
 import {
   Search, Plus, Pencil, Trash2, Download, FileText, ExternalLink, Copy, Check,
   Quote, BookOpen, CalendarDays, ArrowDownAZ, CircleDot, ArrowUp, ArrowDown, X, AtSign, Paperclip,
@@ -9,8 +9,10 @@ import type { Paper, Attachment, FileRow } from '@/db/schema'
 import { cn, formatBytes, fileKind } from '@/lib/utils'
 import { fileUrl } from '@/lib/file-url'
 import { EmptyState, Sheet, StatusBadge, STATUSES } from '@/components/ui/primitives'
-import { PageTitle, EASE } from '@/components/ui/fx'
+import { PageTitle } from '@/components/ui/page'
+import { EASE } from '@/lib/motion'
 import { PaperEditor } from '@/components/public/paper-editor'
+import { useRouter } from 'next/navigation'
 
 export type PaperItem = Paper & {
   attachments: (Attachment & { file: FileRow | null })[]
@@ -62,6 +64,7 @@ export function PapersView({ items, authed }: { items: PaperItem[]; authed: bool
   const [creating, setCreating] = useState(false)
   const [bibtex, setBibtex] = useState(false)
   const isLg = useIsLg()
+  const router = useRouter()
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -93,6 +96,8 @@ export function PapersView({ items, authed }: { items: PaperItem[]; authed: bool
   // ↑ ↓ / j k 切换
   useEffect(() => {
     if (!isLg) return
+    // 有弹层打开时不响应：否则 j/k 会去切换被弹层盖住的列表并把它滚走
+    if (editing || creating || bibtex || sheetOpen) return
     const h = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return
@@ -111,12 +116,15 @@ export function PapersView({ items, authed }: { items: PaperItem[]; authed: bool
     }
     window.addEventListener('keydown', h)
     return () => window.removeEventListener('keydown', h)
-  }, [filtered, selected, isLg])
+  }, [filtered, selected, isLg, editing, creating, bibtex, sheetOpen])
 
   async function remove(p: PaperItem) {
     if (!confirm('删除？')) return
-    await fetch(`/api/papers/${p.id}`, { method: 'DELETE' })
-    location.reload()
+    const r = await fetch(`/api/papers/${p.id}`, { method: 'DELETE' })
+    if (!r.ok) { alert('删除失败'); return }
+    // 用 refresh 而不是整页重载：保住筛选、排序、滚动位置
+    setEditing(null)
+    router.refresh()
   }
 
   function pickSort(k: SortKey) {
@@ -175,7 +183,7 @@ export function PapersView({ items, authed }: { items: PaperItem[]; authed: bool
           <div className="min-w-0 space-y-3">
             <div className="liquid flex items-center gap-2 rounded-2xl p-2">
               <div className="relative min-w-0 flex-1">
-                <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-indigo-100/35" />
+                <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -186,7 +194,7 @@ export function PapersView({ items, authed }: { items: PaperItem[]; authed: bool
                 {query && (
                   <button
                     onClick={() => setQuery('')}
-                    className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-white/40 hover:text-white"
+                    className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-900/40 hover:text-slate-900"
                     aria-label="清除" title="清除"
                   >
                     <X size={13} />
@@ -203,7 +211,7 @@ export function PapersView({ items, authed }: { items: PaperItem[]; authed: bool
                       key={s.key}
                       onClick={() => pickSort(s.key)}
                       className={cn('relative flex h-9 w-9 items-center justify-center rounded-[10px] transition-colors',
-                        sort === s.key ? 'text-white' : 'text-indigo-100/40 hover:text-white/80')}
+                        sort === s.key ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900/80')}
                       aria-label={s.label} title={s.label}
                     >
                       {sort === s.key && (
@@ -244,7 +252,7 @@ export function PapersView({ items, authed }: { items: PaperItem[]; authed: bool
                 )}
               </AnimatePresence>
 
-              <span className="num ml-auto text-[11px] text-indigo-100/35">{filtered.length}</span>
+              <span className="num ml-auto text-[11px] text-slate-500">{filtered.length}</span>
             </div>
 
             {filtered.length === 0 ? (
@@ -364,7 +372,7 @@ function Funnel({ funnel, total, status, onPick }: {
                 {active && (
                   <motion.span
                     layoutId="paper-funnel-active"
-                    className="absolute inset-0 rounded-xl bg-white/[0.06] ring-1 ring-indigo-300/35"
+                    className="absolute inset-0 rounded-xl bg-slate-900/6 ring-1 ring-indigo-300/35"
                     transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                   />
                 )}
@@ -376,8 +384,8 @@ function Funnel({ funnel, total, status, onPick }: {
                   transition={{ duration: 0.7, delay: i * 0.08, ease: EASE }}
                 />
                 <span className="relative flex items-baseline justify-between gap-1.5">
-                  <span className="truncate text-[11px] text-indigo-100/50 group-hover:text-indigo-100/80">{STATUSES[f.key].label}</span>
-                  <span className="num text-[15px] font-semibold text-white/90">{f.n}</span>
+                  <span className="truncate text-[11px] text-slate-600 group-hover:text-slate-700">{STATUSES[f.key].label}</span>
+                  <span className="num text-[15px] font-semibold text-slate-900/90">{f.n}</span>
                 </span>
               </motion.button>
             )
@@ -408,16 +416,16 @@ function PaperRow({ p, active, onOpen }: { p: PaperItem; active: boolean; onOpen
           transition={{ type: 'spring', stiffness: 400, damping: 36 }}
         />
       )}
-      <span className="pointer-events-none absolute inset-0 rounded-xl bg-white/[0.035] opacity-0 transition-opacity group-hover:opacity-100" />
+      <span className="pointer-events-none absolute inset-0 rounded-xl bg-slate-900/4 opacity-0 transition-opacity group-hover:opacity-100" />
       <span className="relative min-w-0 flex-1">
         <span className={cn('line-clamp-2 text-[13.5px] leading-snug transition-colors',
-          active ? 'text-white' : 'text-white/80 group-hover:text-white')}>
+          active ? 'text-slate-900' : 'text-slate-900/80 group-hover:text-slate-900')}>
           {p.title}
         </span>
-        <span className="mt-1 flex items-center gap-1.5 text-[11.5px] text-indigo-100/40">
+        <span className="mt-1 flex items-center gap-1.5 text-[11.5px] text-slate-500">
           <span className="truncate">{p.venue || '—'}</span>
           {year && <><span className="opacity-50">·</span><span className="num shrink-0">{year}</span></>}
-          {pdf && <FileText size={11} className="shrink-0 text-violet-300/70" aria-label="PDF" />}
+          {pdf && <FileText size={11} className="shrink-0 text-violet-600" aria-label="PDF" />}
         </span>
       </span>
       <span className="relative shrink-0 pt-0.5"><StatusBadge status={p.status} /></span>
@@ -433,10 +441,10 @@ function DetailHead({ item, compact }: { item: PaperItem; compact?: boolean }) {
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge status={item.status} />
         {item.type && <span className="label">{TYPE_LABEL[item.type] ?? item.type}</span>}
-        {item.level && <span className="rounded-full border border-indigo-300/25 bg-indigo-400/10 px-2 py-0.5 text-[10.5px] text-indigo-100/75">{item.level}</span>}
-        {item.pubDate && <span className="num text-[11px] text-indigo-100/40">{item.pubDate}</span>}
+        {item.level && <span className="rounded-full border border-indigo-300/25 bg-indigo-400/10 px-2 py-0.5 text-[10.5px] text-slate-700">{item.level}</span>}
+        {item.pubDate && <span className="num text-[11px] text-slate-500">{item.pubDate}</span>}
       </div>
-      <h2 className={cn('mt-2.5 font-medium leading-snug text-white/95', compact ? 'text-[16px]' : 'text-[20px]')}>{item.title}</h2>
+      <h2 className={cn('mt-2.5 font-medium leading-snug text-slate-900/95', compact ? 'text-[16px]' : 'text-[20px]')}>{item.title}</h2>
     </div>
   )
 }
@@ -458,7 +466,7 @@ function CopyBtn({ text, label, children, className }: { text: string; label: st
           transition={{ duration: 0.18 }}
           className="flex items-center"
         >
-          {ok ? <Check size={14} className="text-emerald-300" /> : <Copy size={14} />}
+          {ok ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
         </motion.span>
       </AnimatePresence>
       {children}
@@ -512,17 +520,17 @@ function PaperDetail({ item, authed, author, onAuthor, onEdit, onDelete, hideHea
         <dl className="grid gap-2 sm:grid-cols-2">
           {item.venue && (
             <div className="liquid flex min-w-0 items-center gap-2.5 rounded-xl px-3.5 py-2.5 sm:col-span-2">
-              <BookOpen size={14} className="shrink-0 text-sky-300/70" aria-label="发表处" />
-              <dd className="min-w-0 truncate text-[13.5px] text-white/85">{item.venue}</dd>
+              <BookOpen size={14} className="shrink-0 text-sky-600" aria-label="发表处" />
+              <dd className="min-w-0 truncate text-[13.5px] text-slate-900/85">{item.venue}</dd>
             </div>
           )}
           {item.doi && (
             <div className="liquid flex min-w-0 items-center gap-2 rounded-xl py-1 pl-3.5 pr-1">
-              <span className="shrink-0 text-[10.5px] font-semibold tracking-wider text-indigo-300/70">DOI</span>
+              <span className="shrink-0 text-[10.5px] font-semibold tracking-wider text-indigo-500">DOI</span>
               <a
                 href={`https://doi.org/${item.doi}`}
                 target="_blank" rel="noreferrer"
-                className="min-w-0 flex-1 truncate font-mono text-[12px] text-white/75 hover:text-white"
+                className="min-w-0 flex-1 truncate font-mono text-[12px] text-slate-900/75 hover:text-slate-900"
               >
                 {item.doi}
               </a>
@@ -535,8 +543,8 @@ function PaperDetail({ item, authed, author, onAuthor, onEdit, onDelete, hideHea
               target="_blank" rel="noreferrer"
               className="liquid liquid-hover flex min-h-[44px] min-w-0 items-center gap-2.5 rounded-xl px-3.5 py-2.5"
             >
-              <ExternalLink size={14} className="shrink-0 text-violet-300/80" />
-              <span className="min-w-0 truncate text-[12.5px] text-indigo-100/75">{item.url.replace(/^https?:\/\//, '')}</span>
+              <ExternalLink size={14} className="shrink-0 text-violet-600" />
+              <span className="min-w-0 truncate text-[12.5px] text-slate-700">{item.url.replace(/^https?:\/\//, '')}</span>
             </a>
           )}
         </dl>
@@ -545,15 +553,15 @@ function PaperDetail({ item, authed, author, onAuthor, onEdit, onDelete, hideHea
       {item.abstract && (
         <section>
           <div className="hairline mb-4" />
-          <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-indigo-50/60">{item.abstract}</p>
+          <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-slate-600">{item.abstract}</p>
         </section>
       )}
 
       {pdf?.file && (
         <section className="space-y-3">
           <div className="flex items-center gap-2">
-            <FileText size={14} className="text-violet-300/80" />
-            <span className="min-w-0 flex-1 truncate text-[12px] text-indigo-100/50">{pdf.file.originalName}</span>
+            <FileText size={14} className="text-violet-600" />
+            <span className="min-w-0 flex-1 truncate text-[12px] text-slate-600">{pdf.file.originalName}</span>
             <a href={fileUrl(pdf.file, true)} target="_blank" rel="noreferrer" className="btn btn-ghost h-10 w-10 justify-center p-0" aria-label="新窗口打开" title="↗">
               <ExternalLink size={14} />
             </a>
@@ -563,7 +571,7 @@ function PaperDetail({ item, authed, author, onAuthor, onEdit, onDelete, hideHea
           </div>
           <iframe
             src={fileUrl(pdf.file, true)}
-            className="h-[60vh] w-full rounded-2xl border border-white/10 bg-white lg:h-[70vh]"
+            className="h-[60vh] w-full rounded-2xl border border-slate-900/10 bg-white lg:h-[70vh]"
             title={pdf.file.originalName}
           />
         </section>
@@ -571,7 +579,7 @@ function PaperDetail({ item, authed, author, onAuthor, onEdit, onDelete, hideHea
 
       {others.length > 0 && (
         <section className="space-y-2">
-          <div className="flex items-center gap-1.5 text-indigo-100/40">
+          <div className="flex items-center gap-1.5 text-slate-500">
             <Paperclip size={13} /><span className="num text-[11px]">{others.length}</span>
           </div>
           <ul className="space-y-2">
@@ -582,12 +590,12 @@ function PaperDetail({ item, authed, author, onAuthor, onEdit, onDelete, hideHea
                   className="liquid liquid-hover spotlight flex min-h-[48px] items-center gap-3 rounded-xl px-3.5 py-2.5"
                   aria-label={`下载 ${a.file!.originalName}`}
                 >
-                  <FileText size={14} className="shrink-0 text-sky-300/60" />
+                  <FileText size={14} className="shrink-0 text-sky-600" />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] text-white/80">{a.caption || a.file!.originalName}</span>
-                    <span className="num text-[10.5px] text-indigo-100/35">{formatBytes(a.file!.size)}</span>
+                    <span className="block truncate text-[13px] text-slate-900/80">{a.caption || a.file!.originalName}</span>
+                    <span className="num text-[10.5px] text-slate-500">{formatBytes(a.file!.size)}</span>
                   </span>
-                  <Download size={14} className="shrink-0 text-indigo-100/50" />
+                  <Download size={14} className="shrink-0 text-slate-600" />
                 </a>
               </li>
             ))}
@@ -627,9 +635,9 @@ function BibtexModal({ open, onClose, bib, count }: { open: boolean; onClose: ()
       onClose={onClose}
       title={
         <h2 className="flex items-center gap-2 text-lg font-medium">
-          <Quote size={16} className="text-indigo-300" />
+          <Quote size={16} className="text-indigo-500" />
           BibTeX
-          <span className="num rounded-full border border-indigo-300/20 bg-indigo-400/10 px-2 py-0.5 text-[11px] text-indigo-100/70">{count}</span>
+          <span className="num rounded-full border border-indigo-300/20 bg-indigo-400/10 px-2 py-0.5 text-[11px] text-slate-600">{count}</span>
         </h2>
       }
     >

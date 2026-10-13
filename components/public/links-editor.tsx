@@ -1,6 +1,7 @@
 'use client'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import { m as motion } from 'framer-motion'
 import { Loader2, Check, Trash2, Pin, PencilLine, Plus, Hash, Globe, Type, FolderTree, AlignLeft } from 'lucide-react'
 import { Sheet } from '@/components/ui/primitives'
 import type { Link as LinkRow, Category } from '@/db/schema'
@@ -18,6 +19,7 @@ const EMPTY = { title: '', url: '', description: '', categoryId: '', tags: '', p
 type Err = '' | 'title' | 'url' | 'save'
 
 export function LinksEditor({ open, link, categories, onClose }: Props) {
+  const router = useRouter()
   const [form, setForm] = useState(EMPTY)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<Err>('')
@@ -62,7 +64,7 @@ export function LinksEditor({ open, link, categories, onClose }: Props) {
       })
       if (!res.ok) return setErr('save')
       onClose()
-      location.reload()
+      router.refresh()
     } catch {
       setErr('save')
     } finally {
@@ -79,7 +81,7 @@ export function LinksEditor({ open, link, categories, onClose }: Props) {
       onClose={onClose}
       title={
         <div className="flex items-center gap-3">
-          <span className="liquid flex h-10 w-10 items-center justify-center rounded-2xl text-indigo-100">
+          <span className="liquid flex h-10 w-10 items-center justify-center rounded-2xl text-slate-700">
             {link ? <PencilLine size={17} /> : <Plus size={18} />}
           </span>
           <h2 className="text-grad text-lg font-semibold">{link ? '编辑' : '新增'}</h2>
@@ -146,14 +148,14 @@ export function LinksEditor({ open, link, categories, onClose }: Props) {
           className="chip min-h-10 px-4"
         >
           <motion.span animate={{ rotate: form.pinned ? -30 : 0, scale: form.pinned ? 1.15 : 1 }} transition={{ type: 'spring', stiffness: 400, damping: 16 }}>
-            <Pin size={13} className={form.pinned ? 'text-violet-200' : ''} />
+            <Pin size={13} className={form.pinned ? 'text-violet-600' : ''} />
           </motion.span>
           置顶
         </button>
 
-        {err === 'save' && <p className="text-[12.5px] text-rose-300">✕ 失败</p>}
+        {err === 'save' && <p className="text-[12.5px] text-rose-600">✕ 失败</p>}
 
-        <div className="flex items-center gap-2 border-t border-white/[0.06] pt-5">
+        <div className="flex items-center gap-2 border-t border-slate-900/6 pt-5">
           <button onClick={save} disabled={busy} className="btn btn-primary shine min-h-10 px-5">
             {busy ? <Loader2 size={14} className="animate-spin" /> : <Check size={15} />}
             保存
@@ -164,7 +166,7 @@ export function LinksEditor({ open, link, categories, onClose }: Props) {
               onClick={async () => {
                 if (!confirm('删除？')) return
                 await fetch(`/api/links/${link.id}`, { method: 'DELETE' })
-                onClose(); location.reload()
+                onClose(); router.refresh()
               }}
               className="btn btn-danger btn-ghost btn-icon ml-auto h-10 w-10"
               aria-label="删除"
@@ -186,8 +188,8 @@ export function Field({ label, required, hint, icon, className, children }: {
   return (
     <label className={cn('block', className)} title={hint}>
       {(label || icon) && (
-        <span className="mb-1.5 flex items-center gap-1.5 text-[12px] font-medium tracking-wide text-indigo-100/50">
-          {icon && <span className="text-indigo-200/45">{icon}</span>}
+        <span className="mb-1.5 flex items-center gap-1.5 text-[12px] font-medium tracking-wide text-slate-600">
+          {icon && <span className="text-indigo-400">{icon}</span>}
           {label}
           {required && <span className="h-1 w-1 rounded-full" style={{ background: 'var(--grad)' }} aria-label="必填" />}
         </span>

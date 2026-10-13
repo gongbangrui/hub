@@ -8,8 +8,10 @@ const config: NextConfig = {
   outputFileTracingIncludes: {},
   experimental: {
     serverActions: { bodySizeLimit: '4mb' },
+    // 图标库与动画库按需摘取,减小客户端包
+    optimizePackageImports: ['lucide-react', 'framer-motion'],
   },
-  serverExternalPackages: ['better-sqlite3'],
+  serverExternalPackages: ['better-sqlite3', 'sharp'],
 }
 
 export default config

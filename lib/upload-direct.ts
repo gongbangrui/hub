@@ -7,6 +7,7 @@ import { CHUNK_SIZE, chunkCount, fingerprint, fileKey, dropResume, saveResume } 
 export async function uploadFileDirect(
   file: File,
   onProgress?: (pct: number) => void,
+  opts?: { purpose?: 'attachment' },
 ): Promise<{ fileId: number; shareCode: string | null }> {
   const fp = await fingerprint(file)
 
@@ -19,6 +20,7 @@ export async function uploadFileDirect(
       mime: file.type || 'application/octet-stream',
       fingerprint: fp,
       totalChunks: chunkCount(file.size),
+      purpose: opts?.purpose,
     }),
   })
   if (!initRes.ok) throw new Error('init failed')
@@ -64,6 +66,7 @@ export async function uploadFileDirect(
       mime: file.type || 'application/octet-stream',
       totalChunks,
       fingerprint: fp,
+      purpose: opts?.purpose,
     }),
   })
   if (!doneRes.ok) throw new Error('complete failed')

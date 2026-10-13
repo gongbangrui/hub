@@ -1,16 +1,16 @@
 'use client'
 import { useMemo, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m as motion, AnimatePresence } from 'framer-motion'
 import {
   Type, KeyRound, HardDrive, DatabaseBackup, Download, Eraser, Save, Undo2, FolderTree, Heading1, Heading2,
-  Quote, PanelBottom, Lock, LockKeyhole, ShieldCheck, Database, Upload, Puzzle, Files, Ban, Check, Loader2,
+  Quote, PanelBottom, Megaphone, Lock, LockKeyhole, ShieldCheck, Database, Upload, Puzzle, Files, Ban, Check, Loader2,
 } from 'lucide-react'
 import { cn, formatBytes } from '@/lib/utils'
 import { AdminTitle, api, toast, useMutate } from '@/components/admin/ui'
 
 const EASE = [0.22, 1, 0.36, 1] as const
 
-type Copy = { site_title: string; site_subtitle: string; hero_line: string; footer_note: string }
+type Copy = { site_title: string; site_subtitle: string; hero_line: string; footer_note: string; announcement: string }
 type Storage = { root: string; db: number; uploads: number; chunks: number; files: number; expired: number }
 
 export function SettingsForm({ copy, storage }: { copy: Copy; storage: Storage }) {
@@ -43,11 +43,11 @@ function Card({ icon, title, i, children, className, extra }: {
       transition={{ duration: 0.5, ease: EASE, delay: 0.05 + i * 0.07 }}
       className={cn('liquid spotlight relative overflow-hidden rounded-3xl', className)}
     >
-      <header className="flex items-center gap-2.5 border-b border-white/[0.06] px-4 py-3 sm:px-5">
-        <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-indigo-200/15 bg-[image:var(--grad-soft)] text-sky-100">
+      <header className="flex items-center gap-2.5 border-b border-slate-900/6 px-4 py-3 sm:px-5">
+        <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-indigo-300/30 bg-[image:var(--grad-soft)] text-sky-600">
           {icon}
         </span>
-        <h2 className="text-[14px] font-medium text-white/90">{title}</h2>
+        <h2 className="text-[14px] font-medium text-slate-900/90">{title}</h2>
         {extra && <div className="ml-auto flex items-center gap-1.5">{extra}</div>}
       </header>
       <div className="p-4 sm:p-5">{children}</div>
@@ -58,8 +58,8 @@ function Card({ icon, title, i, children, className, extra }: {
 function Label({ icon, text, children }: { icon: React.ReactNode; text: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1.5 flex items-center gap-1.5 text-[12px] text-indigo-100/50">
-        <span className="text-indigo-200/60">{icon}</span>
+      <span className="mb-1.5 flex items-center gap-1.5 text-[12px] text-slate-600">
+        <span className="text-indigo-500">{icon}</span>
         {text}
       </span>
       {children}
@@ -74,6 +74,7 @@ const COPY_FIELDS: { key: keyof Copy; label: string; icon: React.ReactNode; long
   { key: 'site_subtitle', label: '副标题', icon: <Heading2 size={12} /> },
   { key: 'hero_line', label: '主句', icon: <Quote size={12} />, long: true },
   { key: 'footer_note', label: '页脚', icon: <PanelBottom size={12} /> },
+  { key: 'announcement', label: '首页公告(留空则不显示)', icon: <Megaphone size={12} />, long: true },
 ]
 
 function CopySection({ initial }: { initial: Copy }) {
@@ -152,7 +153,7 @@ function CopySection({ initial }: { initial: Copy }) {
 
 function Preview({ v }: { v: Copy }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[#060818]/70 px-5 py-6">
+    <div className="relative overflow-hidden rounded-2xl border border-slate-900/7 bg-slate-900/[0.04] px-5 py-6">
       <div className="pointer-events-none absolute -left-16 -top-20 h-48 w-48 rounded-full bg-sky-400/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-24 right-0 h-48 w-56 rounded-full bg-purple-500/15 blur-3xl" />
       <div className="relative">
@@ -161,9 +162,9 @@ function Preview({ v }: { v: Copy }) {
           {v.site_title || 'Foliage'}
         </p>
         <p className="title-xl mt-3 break-words text-[clamp(1.4rem,3vw,2.1rem)]">{v.hero_line || '—'}</p>
-        {v.site_subtitle && <p className="mt-3 text-[13px] text-indigo-100/55">{v.site_subtitle}</p>}
+        {v.site_subtitle && <p className="mt-3 text-[13px] text-slate-600">{v.site_subtitle}</p>}
         {v.footer_note && (
-          <p className="mt-6 border-t border-white/[0.06] pt-3 text-[11.5px] text-white/30">{v.footer_note}</p>
+          <p className="mt-6 border-t border-slate-900/6 pt-3 text-[11.5px] text-slate-900/40">{v.footer_note}</p>
         )}
       </div>
     </div>
@@ -175,7 +176,7 @@ function Preview({ v }: { v: Copy }) {
 function PwInput({ icon, invalid, ...rest }: React.InputHTMLAttributes<HTMLInputElement> & { icon: React.ReactNode; invalid?: boolean }) {
   return (
     <div className="relative">
-      <span className={cn('pointer-events-none absolute left-3 top-1/2 -translate-y-1/2', invalid ? 'text-rose-300/80' : 'text-indigo-200/45')}>{icon}</span>
+      <span className={cn('pointer-events-none absolute left-3 top-1/2 -translate-y-1/2', invalid ? 'text-rose-600' : 'text-indigo-400')}>{icon}</span>
       <input type="password" placeholder="••••" {...rest} className={cn('field h-10 pl-9', invalid && 'border-rose-400/45')} />
     </div>
   )
@@ -223,7 +224,7 @@ function PasswordSection() {
                 key={short ? 's' : 'm'}
                 initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.2, ease: EASE }}
-                className="num text-[12px] text-rose-300/85"
+                className="num text-[12px] text-rose-600"
                 role="alert"
               >
                 {short ? '≥ 6' : '≠'}
@@ -280,12 +281,12 @@ function StorageSection({ s }: { s: Storage }) {
         </button>
       }
     >
-      <div className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2" title={s.root}>
-        <FolderTree size={13} className="shrink-0 text-indigo-200/40" />
-        <code className="num min-w-0 flex-1 truncate text-[12px] text-white/60">{s.root}</code>
+      <div className="flex items-center gap-2 rounded-xl border border-slate-900/6 bg-slate-900/2 px-3 py-2" title={s.root}>
+        <FolderTree size={13} className="shrink-0 text-indigo-400" />
+        <code className="num min-w-0 flex-1 truncate text-[12px] text-slate-900/60">{s.root}</code>
       </div>
 
-      <div className="mt-4 flex h-2 gap-[2px] overflow-hidden rounded-full bg-white/[0.05]">
+      <div className="mt-4 flex h-2 gap-[2px] overflow-hidden rounded-full bg-slate-900/5">
         {total > 0 && parts.map((p, i) => (
           <motion.span
             key={p.label}
@@ -297,25 +298,25 @@ function StorageSection({ s }: { s: Storage }) {
         ))}
       </div>
 
-      <dl className="mt-3 divide-y divide-white/[0.05] text-[13px]">
+      <dl className="mt-3 divide-y divide-slate-900/5 text-[13px]">
         {parts.map((p) => (
           <div key={p.label} className="flex items-center justify-between py-2">
-            <dt className="flex items-center gap-2 text-indigo-100/55">
+            <dt className="flex items-center gap-2 text-slate-600">
               <span className={cn('h-2 w-2 rounded-full bg-gradient-to-br', p.cls)} />
               {p.icon}
               {p.label}
             </dt>
-            <dd className="num text-white/85">{formatBytes(p.bytes)}</dd>
+            <dd className="num text-slate-900/85">{formatBytes(p.bytes)}</dd>
           </div>
         ))}
         <div className="flex items-center justify-between py-2">
-          <dt className="flex items-center gap-3 text-indigo-100/55">
+          <dt className="flex items-center gap-3 text-slate-600">
             <span className="inline-flex items-center gap-1.5" title="文件"><Files size={13} />{s.files}</span>
-            <span className={cn('inline-flex items-center gap-1.5', s.expired ? 'text-amber-300' : 'text-white/35')} title="已过期">
+            <span className={cn('inline-flex items-center gap-1.5', s.expired ? 'text-amber-700' : 'text-slate-900/40')} title="已过期">
               <Ban size={13} />{s.expired}
             </span>
           </dt>
-          <dd className="num text-white/40">Σ {formatBytes(total)}</dd>
+          <dd className="num text-slate-900/40">Σ {formatBytes(total)}</dd>
         </div>
       </dl>
     </Card>
@@ -329,8 +330,8 @@ function BackupSection({ size }: { size: number }) {
     <Card icon={<DatabaseBackup size={15} />} title="备份" i={3}>
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="num truncate text-[13px] text-white/80" suppressHydrationWarning>app-{today()}.db</p>
-          <p className="num mt-0.5 text-[11.5px] text-indigo-100/40">≈ {formatBytes(size)}</p>
+          <p className="num truncate text-[13px] text-slate-900/80" suppressHydrationWarning>app-{today()}.db</p>
+          <p className="num mt-0.5 text-[11.5px] text-slate-500">≈ {formatBytes(size)}</p>
         </div>
         <a
           href="/api/admin/backup"
